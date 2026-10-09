@@ -342,6 +342,34 @@ label { font-weight: 600; font-size: .9rem; }
     </div>
   </section>
 
+  <section id="cabinet-section" class="card" hidden>
+    <div class="stack" style="gap:4px">
+      <span class="eyebrow">Consejo de Ministros</span>
+      <h2>El Gobierno del grupo</h2>
+      <p class="muted small">Preside quien encabeza el ranking presidencial. Cada ministerio va para quien más se acerca al perfil ideal en esos temas.</p>
+    </div>
+    <div id="cab-me"></div>
+    <div class="stack" style="gap:6px" id="cab-list"></div>
+  </section>
+
+  <section id="awards-section" class="card" hidden>
+    <div class="stack" style="gap:4px">
+      <span class="eyebrow">Gala anual</span>
+      <h2>Los premios del grupo</h2>
+      <p class="muted small">Se recalculan solos cada vez que alguien hace el test.</p>
+    </div>
+    <div id="awards-list" class="stack" style="gap:8px"></div>
+  </section>
+
+  <section id="extra-section" class="card" hidden>
+    <div class="stack" style="gap:4px">
+      <span class="eyebrow">Extra</span>
+      <h2>¿Quién lo dijo?</h2>
+      <p class="muted small">Sale una respuesta de alguien del grupo. Adivina quién fue.</p>
+    </div>
+    <div id="guess-box" class="stack" style="gap:12px"></div>
+  </section>
+
   <p class="foot">Las posiciones de los partidos son aproximadas, estimadas a partir de sus programas y de estudios comparados de expertos sobre partidos europeos (como la encuesta Chapel Hill). Es un test orientativo para pasarlo bien y discutir, no un consejo de voto.</p>
 </div>
 
@@ -513,6 +541,7 @@ function show(screen) {
   $("screen-quiz").hidden = screen !== "quiz";
   $("screen-result").hidden = screen !== "result";
   $("group-section").hidden = screen !== "result";
+  ["cabinet-section", "awards-section", "extra-section"].forEach(id => { $(id).hidden = screen !== "result"; });
   window.scrollTo({ top: 0 });
   if (screen === "intro") renderIntro();
   if (screen === "quiz") renderQuestion();
@@ -814,6 +843,9 @@ function renderGroup() {
   renderStrips(list, viewing && viewing.docId);
   renderCompareOptions(list, viewing);
   renderPresident();
+  renderCabinet(list);
+  renderAwards(list);
+  renderGuess(list);
 }
 
 // Una línea por eje con todos los del grupo; las etiquetas se apilan para no pisarse.
@@ -1030,6 +1062,163 @@ function connect() {
 function refreshGroupViews() {
   if (state.screen === "intro") renderIntroGroup();
   if (state.screen === "result") { renderGroupText(); renderGroup(); }
+}
+
+// ---------- Gobierno del grupo ----------
+// Cada ministerio agrupa las afirmaciones de su área; gana quien menos se aleja del perfil ideal en ellas.
+const MINISTRIES = [
+  { name: "Vivienda", icon: "🏠", q: [0] },
+  { name: "Hacienda", icon: "💶", q: [2, 5, 18, 25] },
+  { name: "Trabajo", icon: "🛠️", q: [14, 16, 21, 23, 29] },
+  { name: "Economía", icon: "📈", q: [7, 9] },
+  { name: "Interior", icon: "👮", q: [8, 15] },
+  { name: "Inclusión y Migraciones", icon: "🌍", q: [1, 22] },
+  { name: "Igualdad", icon: "⚖️", q: [12, 19] },
+  { name: "Sanidad y Educación", icon: "🏥", q: [11, 28] },
+  { name: "Derechos Sociales", icon: "🕊️", q: [6, 10] },
+  { name: "Transición Ecológica", icon: "🌱", q: [24] },
+  { name: "Política Territorial", icon: "🗺️", q: [4, 13, 20, 27] },
+  { name: "Cultura y Tradiciones", icon: "🎭", q: [3, 17, 26] }
+];
+function ministryFit(answers, m) {
+  let sum = 0, wsum = 0;
+  m.q.forEach(i => { const a = clampAns(answers[i]); if (a == null) return; sum += IDEAL[i].w * Math.abs(a - IDEAL[i].v); wsum += IDEAL[i].w; });
+  return wsum ? Math.max(0, Math.min(100, Math.round(100 - (sum / wsum) / 5 * 100))) : null;
+}
+function buildCabinet(list) {
+  const ranking = presRanking(list);
+  const president = ranking[0].x;
+  const pool = list.length > 1 ? list.filter(x => x.docId !== president.docId) : list;
+  const cap = Math.ceil(MINISTRIES.length / pool.length) + 1; // margen para que cada cartera vaya a quien mejor encaja
+  const pairs = [];
+  pool.forEach(x => MINISTRIES.forEach((m, mi) => { const f = ministryFit(x.answers, m); if (f != null) pairs.push({ x, mi, f }); }));
+  pairs.sort((a, b) => b.f - a.f);
+  const owner = {}, load = {};
+  // primero, un ministerio para cada uno (el que mejor se le da); después se reparte el resto
+  [1, cap].forEach(limit => pairs.forEach(p => {
+    if (owner[p.mi] || (load[p.x.docId] || 0) >= limit) return;
+    owner[p.mi] = p; load[p.x.docId] = (load[p.x.docId] || 0) + 1;
+  }));
+  return { president, owner };
+}
+function renderCabinet(list) {
+  const viewing = state.viewing;
+  if (!viewing || !list.length) return;
+  const { president, owner } = buildCabinet(list);
+  const isMe = state.mine && viewing.docId === state.mine.docId;
+  const who = x => x.name + (state.mine && x.docId === state.mine.docId ? " (tú)" : "");
+  const mine = MINISTRIES.map((m, mi) => ({ m, mi, f: ministryFit(viewing.answers, m) })).filter(o => o.f != null).sort((a, b) => a.f - b.f);
+  const held = MINISTRIES.map((m, mi) => owner[mi] && owner[mi].x.docId === viewing.docId ? m : null).filter(Boolean);
+  const worst = mine[0];
+  const role = viewing.docId === president.docId ? "presides el Gobierno" : held.length ? "te encargas de " + listJoin(held.map(m => m.icon + " " + m.name)) : "te quedas sin cartera";
+  const roleOther = viewing.docId === president.docId ? "preside el Gobierno" : held.length ? "se encarga de " + listJoin(held.map(m => m.icon + " " + m.name)) : "se queda sin cartera";
+  $("cab-me").replaceChildren(el("div", { class: "notice", style: "gap:6px" },
+    el("span", null, el("b", null, isMe ? "Tú " + role + "." : `${viewing.name} ${roleOther}.`)),
+    worst ? el("span", { class: "small" }, (isMe ? "Que nunca te dejen tocar " : "Que nunca le dejen tocar ") + worst.m.icon + " " + worst.m.name + ` (${worst.f}/100): es donde más ${isMe ? "te alejas" : "se aleja"} del perfil ideal.`) : null));
+  const rows = [el("div", { class: "pbar", style: "grid-template-columns:2rem 1fr auto" },
+    el("span", { style: "text-align:center" }, "🏛️"),
+    el("span", null, el("b", null, "Presidencia")),
+    el("b", null, who(president)))];
+  MINISTRIES.forEach((m, mi) => {
+    const o = owner[mi];
+    rows.push(el("div", { class: "pbar", style: `grid-template-columns:2rem 1fr auto;${o && o.x.docId === viewing.docId ? "font-weight:700" : ""}` },
+      el("span", { style: "text-align:center" }, m.icon),
+      el("span", { class: "name" }, m.name),
+      el("span", null, o ? who(o.x) + " " : "Vacante ", o ? el("span", { class: "num small muted" }, o.f + "/100") : null)));
+  });
+  $("cab-list").replaceChildren(...rows);
+}
+
+// ---------- Premios del grupo ----------
+function incoherence(answers) {
+  // dentro de cada eje, cuánto se contradicen las respuestas (desviación de las posturas ya orientadas)
+  const by = { E: [], S: [], T: [] };
+  QUESTIONS.forEach((q, i) => { const a = clampAns(answers[i]); if (a != null) by[q.axis].push((a - 5.5) / 4.5 * q.dir); });
+  let tot = 0, n = 0;
+  Object.values(by).forEach(xs => { if (xs.length < 2) return; const m = xs.reduce((s, x) => s + x, 0) / xs.length; tot += Math.sqrt(xs.reduce((s, x) => s + (x - m) ** 2, 0) / xs.length) * xs.length; n += xs.length; });
+  return n ? tot / n : 0;
+}
+function agreementPct(a, b) {
+  const both = QUESTIONS.map((q, i) => [clampAns(a.answers[i]), clampAns(b.answers[i])]).filter(([x, y]) => x != null && y != null);
+  return both.length ? Math.round(100 - both.reduce((s, [x, y]) => s + Math.abs(x - y), 0) / both.length / 9 * 100) : 0;
+}
+function renderAwards(list) {
+  const box = $("awards-list");
+  if (list.length < 3) { box.replaceChildren(el("div", { class: "empty" }, "Los premios se entregan cuando haya al menos 3 personas en el grupo.")); return; }
+  const meName = x => x.name + (state.mine && x.docId === state.mine.docId ? " (tú)" : "");
+  const by = (fn, dir) => list.map(x => ({ x, v: fn(x) })).sort((a, b) => dir * (b.v - a.v))[0];
+  const scs = list.map(x => computeScores(x.answers));
+  const avg = { e: scs.reduce((s, c) => s + c.e, 0) / scs.length, s: scs.reduce((s, c) => s + c.s, 0) / scs.length };
+  const awards = [
+    { icon: "🔥", title: "El más radical", ...((r) => ({ who: meName(r.x), note: `El ${Math.round(r.v * 100)}% de intensidad media: casi todo lo responde en los extremos.` }))(by(x => intensity(x.answers), 1)) },
+    { icon: "😐", title: "El más tibio", ...((r) => ({ who: meName(r.x), note: `Solo un ${Math.round(r.v * 100)}% de intensidad media: todo le parece regular.` }))(by(x => intensity(x.answers), -1)) },
+    { icon: "🌀", title: "El más contradictorio", ...((r) => ({ who: meName(r.x), note: "Sus respuestas de un mismo tema tiran en direcciones opuestas más que las de nadie." }))(by(x => incoherence(x.answers), 1)) },
+    { icon: "🎯", title: "El más coherente", ...((r) => ({ who: meName(r.x), note: "Sus respuestas encajan entre sí: siempre tira hacia el mismo lado en cada tema." }))(by(x => incoherence(x.answers), -1)) },
+    { icon: "🦄", title: "El verso suelto", ...((r) => ({ who: meName(r.x), note: "Es quien más lejos está de la media del grupo en el mapa." }))(by(x => { const c = computeScores(x.answers); return Math.hypot(c.e - avg.e, c.s - avg.s); }, 1)) }
+  ];
+  const pairs = [];
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) pairs.push({ a: list[i], b: list[j], v: agreementPct(list[i], list[j]) });
+  pairs.sort((p, q) => q.v - p.v);
+  const best = pairs[0], worst = pairs[pairs.length - 1];
+  awards.push({ icon: "💑", title: "La pareja con más química política", who: `${meName(best.a)} y ${meName(best.b)}`, note: `Coinciden en un ${best.v}% de las respuestas.` });
+  awards.push({ icon: "💥", title: "La pareja que nunca debería cenar junta", who: `${meName(worst.a)} y ${meName(worst.b)}`, note: `Solo coinciden en un ${worst.v}%.` });
+  box.replaceChildren(...awards.map(a => el("div", { class: "notice", style: "grid-template-columns:2.2rem 1fr;display:grid;align-items:start;gap:4px 10px" },
+    el("span", { style: "font-size:1.6rem;line-height:1;grid-row:span 3" }, a.icon),
+    el("span", { class: "eyebrow" }, a.title),
+    el("b", { style: "font-family:var(--font-display);font-size:1.15rem" }, a.who),
+    el("span", { class: "small muted" }, a.note))));
+}
+
+// ---------- Extra: ¿Quién lo dijo? ----------
+const guess = { round: null, score: 0, total: 0, picked: null };
+function newGuessRound(list) {
+  const others = list.filter(x => !(state.mine && x.docId === state.mine.docId));
+  const cands = [];
+  others.forEach(x => x.answers.forEach((a, i) => { a = clampAns(a); if (a != null && (a <= 2 || a >= 9)) cands.push({ x, i, a }); }));
+  if (!cands.length) others.forEach(x => x.answers.forEach((a, i) => { a = clampAns(a); if (a != null) cands.push({ x, i, a }); }));
+  guess.round = cands.length ? cands[Math.floor(Math.random() * cands.length)] : null;
+  guess.picked = null;
+}
+function renderGuess(list) {
+  const box = $("guess-box");
+  const others = list.filter(x => !(state.mine && x.docId === state.mine.docId));
+  if (others.length < 2) { box.replaceChildren(el("div", { class: "empty" }, "Hace falta que al menos 2 personas más hagan el test para jugar.")); return; }
+  if (!guess.round || !list.some(x => x.docId === guess.round.x.docId)) newGuessRound(list);
+  const r = guess.round;
+  if (!r) return;
+  const q = QUESTIONS[r.i];
+  const kids = [
+    el("div", { class: "notice", style: "gap:8px" },
+      el("span", { style: "font-family:var(--font-display);font-weight:700;font-size:1.15rem" }, q.text),
+      el("span", null, "Alguien del grupo puso un ", el("b", { class: "num" }, r.a + "/10"), ". ¿Quién fue?"))
+  ];
+  const btns = el("div", { class: "row" });
+  others.forEach(x => {
+    const b = el("button", { class: "btn", type: "button" }, x.name);
+    if (guess.picked) {
+      b.disabled = true;
+      if (x.docId === r.x.docId) b.style.cssText = "border-color:var(--ok);color:var(--ok);opacity:1";
+      else if (x.docId === guess.picked) b.style.cssText = "border-color:var(--left);color:var(--left);opacity:1";
+    } else {
+      b.addEventListener("click", () => {
+        guess.picked = x.docId; guess.total++;
+        if (x.docId === r.x.docId) guess.score++;
+        renderGuess(groupWith(state.viewing));
+      });
+    }
+    btns.append(b);
+  });
+  kids.push(btns);
+  if (guess.picked) {
+    const ok = guess.picked === r.x.docId;
+    kids.push(el("p", null, el("b", null, ok ? "¡Correcto! " : "¡No! "), `Fue ${r.x.name}.`));
+    kids.push(el("div", { class: "row", style: "justify-content:space-between" },
+      el("span", { class: "num small muted" }, `Aciertos: ${guess.score} de ${guess.total}`),
+      el("button", { class: "btn primary", type: "button", onclick: () => { newGuessRound(groupWith(state.viewing)); renderGuess(groupWith(state.viewing)); } }, "Siguiente")));
+  } else if (guess.total) {
+    kids.push(el("span", { class: "num small muted" }, `Aciertos: ${guess.score} de ${guess.total}`));
+  }
+  box.replaceChildren(...kids);
 }
 
 // ---------- Personajes históricos ----------
