@@ -274,6 +274,18 @@ label { font-weight: 600; font-size: .9rem; }
       <div class="parties" id="r-parties"></div>
     </section>
 
+    <section class="card" id="fig-card">
+      <div class="stack" style="gap:4px">
+        <span class="eyebrow">Personajes históricos</span>
+        <h2>¿A quién te pareces?</h2>
+      </div>
+      <div class="row" style="gap:16px;align-items:stretch" id="fig-main"></div>
+      <div class="stack" style="gap:6px">
+        <p class="small muted">Parecido con los 20 personajes, del más cercano al más opuesto:</p>
+        <div class="parties" id="fig-list"></div>
+      </div>
+    </section>
+
     <section class="card">
       <h2>Comparado con el grupo</h2>
       <div class="analysis" id="r-group-text"></div>
@@ -304,6 +316,7 @@ label { font-weight: 600; font-size: .9rem; }
     <div class="toggles">
       <label><input type="checkbox" id="show-parties" checked> Mostrar partidos</label>
       <label><input type="checkbox" id="show-names" checked> Mostrar nombres</label>
+      <label><input type="checkbox" id="show-figures" checked> Mostrar personajes históricos</label>
     </div>
     <div class="chart-wrap" id="group-chart"></div>
     <div class="stack" style="gap:8px">
@@ -706,6 +719,7 @@ function renderResult() {
     el("span", { class: "pct num" }, a.aff + "%")
   )));
 
+  renderFigures(entry);
   renderSaveStatus();
   renderGroupText();
   renderGroup();
@@ -760,7 +774,7 @@ function renderGroup() {
   else sub.textContent = `${list.length} ${list.length === 1 ? "persona" : "personas"} en el mapa. Arriba conservador, abajo progresista; a la izquierda socialista, a la derecha capitalista.`;
   const box = $("group-chart");
   box.replaceChildren();
-  drawChart(box, list, viewing && viewing.docId, $("show-parties").checked, $("show-names").checked);
+  drawChart(box, list, viewing && viewing.docId, $("show-parties").checked, $("show-names").checked, $("show-figures").checked);
 
   // Distribución de voto
   const counts = {};
@@ -782,7 +796,7 @@ function renderGroup() {
     return el("div", { class: "member" },
       el("button", { class: "who", type: "button", onclick: () => { state.viewing = x; show("result"); } },
         el("b", null, el("span", { class: "dot", style: `background:${r.top.color}` }), x.name + (isMe ? " (tú)" : "")),
-        el("span", { class: "meta" }, `${r.ideo.label} · ${r.top.name}`)),
+        el("span", { class: "meta" }, `${r.ideo.label} · ${r.top.name} · se parece a ${figureMatch(r.sc)[0].f.name}`)),
       acts);
   }) : [el("div", { class: "empty" }, "Nadie todavía.")]));
 
@@ -895,7 +909,7 @@ function compareBar(label, left, right, va, vb, na, nb) {
     el("div", { class: "axis-val small" }, el("span", { class: "dot", style: "background:var(--mark);border:1.5px solid var(--ink)" }), na + " ", el("span", { class: "num" }, String(va)), "   ", el("span", { class: "dot", style: "background:var(--accent);margin-left:12px" }), nb + " ", el("span", { class: "num" }, String(vb))));
 }
 
-function drawChart(container, entries, highlightId, showParties, showNames) {
+function drawChart(container, entries, highlightId, showParties, showNames, showFigures) {
   const W = 460, P = 46, S = W - 2 * P;
   const X = e => P + (e + 100) / 200 * S;
   const Y = s => P + (100 - s) / 200 * S;
@@ -920,6 +934,17 @@ function drawChart(container, entries, highlightId, showParties, showNames) {
   lab(W / 2, P + S + 28, "PROGRESISTA", "var(--prog)");
   lab(P - 22, W / 2, "SOCIALISTA", "var(--left)", -90);
   lab(P + S + 22, W / 2, "CAPITALISTA", "var(--right)", 90);
+
+  if (showFigures) {
+    FIGURES.forEach(f => {
+      const fx = X(f.e), fy = Y(f.s), g = sv("g", { opacity: 0.9 });
+      g.append(sv("title", {}, `${f.name}: ${f.desc}`));
+      g.append(sv("path", { d: `M${fx} ${fy - 5} L${fx + 5} ${fy} L${fx} ${fy + 5} L${fx - 5} ${fy} Z`, fill: "var(--muted)", stroke: "var(--surface)", "stroke-width": 1 }));
+      const right = fx > W - 90, left = fx < 90;
+      g.append(sv("text", { x: right ? fx - 8 : fx + 8, y: fy + 3.5 + (f.dy || 0), "text-anchor": right ? "end" : "start", "font-size": 9, "font-style": "italic", fill: "var(--muted)", stroke: "var(--bg)", "stroke-width": 2.5, "paint-order": "stroke" }, f.short));
+      svg.append(g);
+    });
+  }
 
   if (showParties) {
     PARTIES.forEach(p => {
@@ -994,6 +1019,56 @@ function connect() {
 function refreshGroupViews() {
   if (state.screen === "intro") renderIntroGroup();
   if (state.screen === "result") { renderGroupText(); renderGroup(); }
+}
+
+// ---------- Personajes históricos ----------
+// Posición en los mismos ejes del test: e (−100 socialista … +100 capitalista), s (−100 progresista … +100 conservador/autoritario).
+// Estimada a partir de las políticas que aplicaron (economía planificada o de mercado, libertades, valores, mano dura).
+const FIGURES = [
+  { name: "Iósif Stalin", short: "Stalin", e: -100, s: 90, dy: -6, desc: "Economía totalmente planificada, colectivización forzosa y terror político en la URSS." },
+  { name: "Mao Zedong", short: "Mao", e: -95, s: 82, dy: 6, desc: "Comunismo agrario, Revolución Cultural y control total del Estado en China." },
+  { name: "Kim Jong-un", short: "Kim Jong-un", e: -88, s: 100, desc: "Economía estatal cerrada y el régimen más represivo del mundo en Corea del Norte." },
+  { name: "Fidel Castro", short: "Castro", e: -88, s: 62, desc: "Nacionalizaciones, sanidad y educación públicas y partido único en Cuba." },
+  { name: "Nicolás Maduro", short: "Maduro", e: -72, s: 55, desc: "Controles de precios, expropiaciones y represión de la oposición en Venezuela." },
+  { name: "Bernie Sanders", short: "Sanders", e: -62, s: -58, desc: "Socialista democrático: sanidad universal, impuestos a los ricos y derechos civiles." },
+  { name: "Nelson Mandela", short: "Mandela", e: -35, s: -45, desc: "Fin del apartheid, reconciliación y derechos civiles con un programa socialdemócrata." },
+  { name: "Pedro Sánchez", short: "Sánchez", e: -25, s: -50, desc: "Socialdemocracia: subidas del salario mínimo, feminismo, eutanasia y pactos con nacionalistas." },
+  { name: "Barack Obama", short: "Obama", e: -8, s: -42, desc: "Centroizquierda: reforma sanitaria, matrimonio igualitario y economía de mercado regulada." },
+  { name: "Angela Merkel", short: "Merkel", e: 22, s: 8, desc: "Centroderecha pragmática: rigor fiscal, consenso y acogida de refugiados en 2015." },
+  { name: "Emmanuel Macron", short: "Macron", e: 40, s: -12, desc: "Liberal de centro: reformas pro-empresa, europeísmo y posturas sociales abiertas." },
+  { name: "Winston Churchill", short: "Churchill", e: 42, s: 50, desc: "Conservador británico: libre comercio, imperio y liderazgo frente al nazismo." },
+  { name: "Ronald Reagan", short: "Reagan", e: 75, s: 55, desc: "Bajadas de impuestos, desregulación, anticomunismo y valores tradicionales." },
+  { name: "Margaret Thatcher", short: "Thatcher", e: 88, s: 48, desc: "Privatizaciones, choque con los sindicatos y libre mercado con orden y valores conservadores." },
+  { name: "Javier Milei", short: "Milei", e: 100, s: 28, dy: 10, desc: "Anarcocapitalista: recorte radical del Estado, pero contrario al aborto y al feminismo." },
+  { name: "Donald Trump", short: "Trump", e: 45, s: 72, desc: "Bajadas de impuestos con aranceles, mano dura con la inmigración y nacionalismo." },
+  { name: "Nayib Bukele", short: "Bukele", e: 32, s: 82, dy: 8, desc: "Mano dura extrema contra las pandillas, concentración de poder y economía de mercado." },
+  { name: "Vladímir Putin", short: "Putin", e: 22, s: 88, desc: "Capitalismo de Estado con oligarcas, nacionalismo y represión de la disidencia." },
+  { name: "Francisco Franco", short: "Franco", e: 15, s: 96, dy: -6, desc: "Dictadura nacionalcatólica: autarquía y luego desarrollismo, sin libertades." },
+  { name: "Adolf Hitler", short: "Hitler", e: 5, s: 100, dy: 8, desc: "Totalitarismo racista: economía dirigida por el Estado para la guerra y genocidio." }
+];
+function figureMatch(sc) {
+  return FIGURES.map(f => {
+    const d = Math.hypot(sc.e - f.e, sc.s - f.s);
+    return { f, d, pct: Math.max(0, Math.min(100, Math.round(100 - d * 0.42))) };
+  }).sort((a, b) => a.d - b.d);
+}
+function renderFigures(entry) {
+  const sc = computeScores(entry.answers);
+  const m = figureMatch(sc);
+  const best = m[0], worst = m[m.length - 1];
+  const isMe = state.mine && entry.docId === state.mine.docId;
+  const box = (title, it, color) => el("div", { class: "notice", style: `flex:1 1 220px;min-width:0;border-color:${color}` },
+    el("span", { class: "eyebrow" }, title),
+    el("b", { style: "font-family:var(--font-display);font-size:1.5rem;line-height:1.1" }, it.f.name),
+    el("span", { class: "num small" }, it.pct + "% de parecido"),
+    el("span", { class: "small muted" }, it.f.desc));
+  $("fig-main").replaceChildren(
+    box(isMe ? "Te pareces más a" : `${entry.name} se parece más a`, best, "var(--ok)"),
+    box(isMe ? "Tu polo opuesto" : `Su polo opuesto`, worst, "var(--left)"));
+  $("fig-list").replaceChildren(...m.map(it => el("div", { class: "pbar" },
+    el("span", { class: "name", title: it.f.name }, it.f.short),
+    el("span", { class: "track" }, el("i", { style: `width:${it.pct}%;background:var(--muted)` })),
+    el("span", { class: "pct num" }, it.pct + "%"))));
 }
 
 // ---------- Ranking presidencial ----------
@@ -1168,6 +1243,7 @@ function wire() {
   $("back-mine").addEventListener("click", () => { state.viewing = state.mine; show("result"); });
   $("show-parties").addEventListener("change", renderGroup);
   $("show-names").addEventListener("change", renderGroup);
+  $("show-figures").addEventListener("change", renderGroup);
   $("compare-select").addEventListener("change", ev => { compareWith = ev.target.value; const v = state.viewing; renderCompare(v, groupWith(v).find(x => x.docId === compareWith)); });
   document.addEventListener("keydown", ev => {
     if (state.screen !== "quiz" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
