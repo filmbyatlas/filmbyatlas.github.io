@@ -1087,40 +1087,42 @@ function renderFigures(entry) {
 //  t "e" (evidencia): temas comprobables con datos; manda el diagnóstico de los organismos expertos
 //        (OCDE, FMI, Comisión Europea, Banco de España) y los estudios (Fedea, ESADE…).
 //  t "m" (cuestiones morales o sin evidencia clara): ningún estudio dice qué postura es mejor, así que
-//        manda la opinión media de los españoles según encuestas (CIS, 40dB, Ipsos, Comillas…).
+//        manda la opinión de los españoles según encuestas (CIS, 40dB, Ipsos, More in Common…), convertida
+//        con una regla fija: nota = 1 + 9 × (% a favor ÷ % que opina). 0% → 1, 50% → 5,5, 100% → 10.
 // Peso de cada afirmación = importancia del problema (menciones en el CIS de 2026: vivienda ≈45%,
-// inmigración y economía ≈20%) × solidez de la evidencia (temas "e") o claridad de la mayoría (temas "m").
+// inmigración y economía ≈20%) × solidez de la evidencia (temas "e") o claridad de la mayoría (temas "m":
+// 0,5 + distancia del 50%; las estimaciones sin encuesta pesan 0,4).
 const IDEAL = [
   { v: 4, w: 1.7, t: "e", why: "Los expertos (FMI, Banco de España) piden construir más y agilizar permisos. Los topes bajan algo los precios (3-6%) pero reducen la oferta de alquiler (≈10% menos contratos en Cataluña, ESADE; Fedea)." },
-  { v: 6, w: 1.1, t: "m", why: "La mayoría cree que la inmigración enriquece la cultura (Universidad Comillas, 2024; 56% de los jóvenes según el Observatorio de la Juventud), aunque preocupa cada vez más en el CIS." },
+  { v: 6.9, w: 0.99, t: "m", why: "Unos dos de cada tres españoles ven la inmigración como una oportunidad o una necesidad (More in Common, Europe Talks Migration 2025), aunque preocupa cada vez más en el CIS. A favor el 66% de quienes opinan → 6,9/10." },
   { v: 3.5, w: 1.25, t: "e", why: "Con la deuda cerca del 100% del PIB, el FMI y la Comisión Europea piden reducir el déficit (≈0,6 puntos de PIB al año). Las bajadas de impuestos rara vez se pagan solas." },
-  { v: 5, w: 0.5, t: "m", why: "Alrededor del 70% sigue prefiriendo el matrimonio (CIS, Encuesta de Fecundidad y Familia), pero cada vez se aceptan más otros modelos familiares. Sin una mayoría clara a favor de proteger especialmente uno solo." },
-  { v: 3.5, w: 1, t: "m", why: "Solo un 10-14% apoya que las comunidades puedan independizarse (CIS); en el conjunto de España, mayoría contraria al referéndum." },
+  { v: 5.5, w: 0.4, t: "m", why: "Sin encuesta sobre esta afirmación: el 70% prefiere el matrimonio (CIS), pero eso no es lo mismo que privilegiar un modelo. Punto medio, peso bajo." },
+  { v: 6.4, w: 0.6, t: "m", why: "En el conjunto de España, el 57% apoya un referéndum legal y pactado en Cataluña y el 38% lo rechaza (Sigma Dos, 2017; no hay encuestas nacionales más recientes). Apoyar el referéndum no es apoyar la independencia: esta solo la quiere un 10-14% (CIS). A favor el 60% de quienes opinan → 6,4/10." },
   { v: 5, w: 0.6, t: "e", why: "Los organismos recomiendan ampliar bases (IVA, fiscalidad verde) más que subir tipos a unos pocos; la OCDE sí defiende gravar más las herencias. Los impuestos al patrimonio recaudan poco y favorecen la huida de contribuyentes." },
-  { v: 7.5, w: 1, t: "m", why: "España está entre los países con más apoyo al aborto legal (Ipsos)." },
+  { v: 8.3, w: 0.81, t: "m", why: "Unos siete de cada diez apoyan que el aborto sea legal y el 16% se opone (Ipsos, 2022). A favor el 81% de quienes opinan → 8,3/10." },
   { v: 3.5, w: 0.75, t: "e", why: "Un estudio del FMI (Ostry, Berg y Tsangarides, 2014) concluye que una redistribución moderada no frena el crecimiento y que menos desigualdad se asocia a un crecimiento más rápido y duradero." },
   { v: 4, w: 0.75, t: "e", why: "España tiene una de las tasas de criminalidad más bajas de la UE, y los estudios muestran que disuade más la probabilidad de ser castigado que la dureza de la pena." },
   { v: 3.5, w: 0.75, t: "e", why: "Al abrir la alta velocidad a la competencia, los viajeros se duplicaron y los precios bajaron más de un 40% en términos reales (CNMC, 2026). La infraestructura puede ser pública; operar en competencia funciona mejor." },
-  { v: 7.5, w: 1, t: "m", why: "El 72% apoya la eutanasia y solo el 15% está en contra (CIS)." },
-  { v: 3.5, w: 0.75, t: "m", why: "La mayoría prefiere la sanidad y la educación de gestión pública (barómetros sanitarios del CIS)." },
-  { v: 5, w: 0.5, t: "m", why: "País partido: el 46% cree que la igualdad ha ido demasiado lejos (53% de los hombres y 39% de las mujeres, Ipsos 2025)." },
-  { v: 5, w: 0.5, t: "m", why: "Un 39% quiere menos autonomía o ninguna, un 26% mantenerla como está y un 18,5% más autonomía (CIS, octubre 2024)." },
+  { v: 8.4, w: 0.83, t: "m", why: "El 72% apoya la eutanasia y el 15% está en contra (CIS). A favor el 83% de quienes opinan → 8,4/10." },
+  { v: 3.6, w: 0.71, t: "m", why: "Alrededor del 71% prefiere la sanidad pública: el 67% en atención primaria y el 75% para un ingreso hospitalario (Barómetro Sanitario, CIS 2023-2025). A favor el 29% de quienes opinan → 3,6/10." },
+  { v: 5.5, w: 0.51, t: "m", why: "El 46% cree que la igualdad ha ido demasiado lejos (53% de los hombres y 39% de las mujeres, Ipsos 2025); el resto, en su mayoría, no lo cree. País partido. A favor el 51% de quienes opinan → 5,5/10." },
+  { v: 4.9, w: 0.57, t: "m", why: "Un 39% quiere menos autonomía o ninguna; frente a un 52% que quiere mantenerla, ampliarla o la independencia (CIS, octubre 2024). A favor el 43% de quienes opinan → 4,9/10." },
   { v: 5, w: 0.6, t: "e", why: "El Banco de España estimó que la subida del 22% de 2019 costó empleo entre los afectados (6-11 puntos); ya está alto respecto al salario medio, así que más subidas tienen más riesgo." },
   { v: 4.5, w: 0.75, t: "e", why: "Una revisión científica (Adicciones, 2023) encuentra que legalizar abarata el cannabis, aumenta su potencia, baja la percepción de riesgo y sube algo el consumo adolescente, sin acabar con el mercado ilegal." },
   { v: 4, w: 0.75, t: "e", why: "Los estudios encuentran efectos pequeños: en el experimento de Finlandia, recibir dinero sin condiciones no redujo el empleo." },
-  { v: 4, w: 0.75, t: "m", why: "Más españoles rechazan los toros que los defienden: el 44% los prohibiría frente al 35% que los mantendría (Electomanía), y otras encuestas dan más rechazo." },
+  { v: 5.0, w: 0.56, t: "m", why: "El 35% cree que los toros son una tradición a mantener y el 44% los prohibiría (Electomanía, 2021); otras encuestas dan aún más rechazo. A favor el 44% de quienes opinan → 5,0/10." },
   { v: 3, w: 1.25, t: "e", why: "En Finlandia no mejoró el empleo y en España costaría en torno al 17% del PIB (BBVA Research), incompatible con reducir la deuda; mejor ayudas dirigidas." },
-  { v: 5, w: 0.5, t: "m", why: "No hay encuestas nacionales publicadas sobre esta ley. España es de los países más abiertos con las personas trans (Ipsos), pero eliminar todo requisito médico es más discutido. Estimación con peso bajo." },
-  { v: 4, w: 0.75, t: "m", why: "Minoría a favor de la plurinacionalidad: la mayoría se siente tan o más española que de su comunidad (CIS)." },
+  { v: 5.5, w: 0.4, t: "m", why: "Sin encuesta nacional publicada sobre esta ley. Punto medio, peso bajo." },
+  { v: 3.7, w: 0.7, t: "m", why: "Aproximación: solo un 25% quiere más autonomía y un 10% la independencia (CIS, 2018), y la mayoría se siente tan española como de su comunidad. No hay pregunta directa sobre la plurinacionalidad. A favor el 30% de quienes opinan → 3,7/10." },
   { v: 4.5, w: 0.9, t: "e", why: "La reforma laboral de 2022 redujo mucho la temporalidad sin destruir empleo; abaratar el despido no es la palanca principal según la evidencia reciente." },
   { v: 4, w: 1.5, t: "e", why: "La OCDE señala el envejecimiento como reto clave y el Banco de España calcula que hará falta mucha más población en edad de trabajar: frenar la mano de obra perjudica pensiones y crecimiento. Sí hay consenso en controlar la entrada irregular." },
   { v: 5, w: 0.9, t: "e", why: "Las 35 horas de Francia no crearon empleo neto según los estudios académicos, y el Banco de España pide flexibilidad por sectores por la baja productividad española. Mejor negociarlo sector a sector que imponerlo por ley." },
   { v: 7.5, w: 1, t: "e", why: "Consenso científico: no actuar sale más caro que actuar, y España es de los países europeos más expuestos. La Comisión Europea pide más fiscalidad verde." },
   { v: 3.5, w: 0.75, t: "e", why: "La OCDE considera los impuestos de sucesiones bien diseñados de los más eficientes y justos, aunque sean impopulares." },
-  { v: 5, w: 0.5, t: "m", why: "País dividido: un 39% votaría república y un 31-35% monarquía (40dB), y el rey aprueba con un 5,7." },
-  { v: 6.5, w: 0.5, t: "m", why: "No hay encuestas nacionales publicadas; casi todos los datos son de Cataluña. Estimación con peso bajo: en el conjunto de España se apoya garantizar el castellano." },
-  { v: 4.5, w: 0.5, t: "m", why: "Datos dispares: el 70% rechaza que Religión cuente para la nota media (El País), pero el 67,6% apoya que exista la asignatura (ESCAV) y la cursa el 56% del alumnado de la pública." },
-  { v: 6, w: 0.5, t: "m", why: "Los sindicatos suspenden en confianza (3,5 sobre 10, CIS 2024; el 60% les da 4 o menos), señal de una visión crítica, aunque no hay pregunta directa sobre su poder." }
+  { v: 5.1, w: 0.55, t: "m", why: "Un 31-35% votaría monarquía y un 39-41% república (40dB, 2020-2021). País dividido. A favor el 45% de quienes opinan → 5,1/10." },
+  { v: 6.5, w: 0.4, t: "m", why: "Sin encuesta nacional publicada; casi todos los datos son de Cataluña. Estimación con peso bajo: en el conjunto de España se apoya garantizar el castellano." },
+  { v: 3.9, w: 0.68, t: "m", why: "El 67,6% apoya que exista la asignatura de Religión (ESCAV), aunque el 70% no quiere que cuente para la nota media (El País). A favor el 32% de quienes opinan → 3,9/10." },
+  { v: 6, w: 0.4, t: "m", why: "Sin pregunta directa sobre su poder; los sindicatos suspenden en confianza (3,5 sobre 10, CIS 2024). Estimación con peso bajo." }
 ];
 const IDEAL_SC = computeScores(IDEAL.map(x => x.v));
 function presScore(answers) {
@@ -1143,7 +1145,7 @@ function renderPresident() {
 
   $("pres-intro").replaceChildren(
     el("p", null, "No es lo que quiere la mayoría, sino lo que más le convendría al país. Los organismos que analizan España (OCDE, FMI, Comisión Europea y Banco de España) coinciden en cuatro prioridades: reducir la deuda pública y asegurar las pensiones, aumentar la productividad, construir más vivienda y afrontar el envejecimiento de la población. En esos temas el ideal es lo que dicen los estudios, aunque sea impopular."),
-    el("p", null, "En las cuestiones morales (aborto, eutanasia, monarquía, toros, idiomas…) ningún estudio dice qué es mejor para el país, así que ahí el ideal es lo que piensan de media los españoles según las encuestas (CIS, 40dB, Ipsos…)."),
+    el("p", null, "En las cuestiones morales (aborto, eutanasia, monarquía, toros, idiomas…) ningún estudio dice qué es mejor para el país, así que ahí el ideal es lo que piensan los españoles según las encuestas (CIS, 40dB, Ipsos…). El porcentaje se pasa a la escala con una regla fija: un 10% a favor da un 1,9; un 50%, un 5,5; un 90%, un 9,1."),
     el("p", null, "Cada tema pesa según lo importante que es para los españoles (vivienda, inmigración y economía, los primeros problemas en el CIS) y lo seguro que es el dato: una evidencia sólida o una mayoría clara pesan más que un estudio discutido o un país partido por la mitad."),
     el("p", null, `El perfil resultante sale «${idealIdeo.label}» y es la estrella del mapa del grupo. El test no puede medir lo que también importa mucho en un presidente: honestidad, experiencia y capacidad de gestión.`)
   );
