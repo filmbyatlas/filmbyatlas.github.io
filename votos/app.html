@@ -346,7 +346,7 @@ label { font-weight: 600; font-size: .9rem; }
     <div class="stack" style="gap:4px">
       <span class="eyebrow">Consejo de Ministros</span>
       <h2>El Gobierno del grupo</h2>
-      <p class="muted small">Preside quien encabeza el ranking presidencial. Los ministerios se reparten para que el Gobierno, en conjunto, quede lo más cerca posible del perfil ideal, con al menos una cartera por persona antes de que nadie repita.</p>
+      <p class="muted small">Preside quien encabeza el ranking presidencial. Cada ministerio es para la persona que mejor encaja en ese puesto, aunque acumule varios: cuenta un 70% lo cerca que está del perfil ideal en esos temas y un 30% lo implicada que está (lo firmes que son sus opiniones).</p>
     </div>
     <div id="cab-me"></div>
     <div class="stack" style="gap:6px" id="cab-list"></div>
@@ -1072,10 +1072,10 @@ const MINISTRIES = [
   { name: "Trabajo", icon: "🛠️", q: [14, 16, 21, 23, 29] },
   { name: "Interior y Migraciones", icon: "👮", q: [1, 8, 15, 22] },
   { name: "Igualdad y Derechos", icon: "🕊️", q: [6, 10, 12, 19] },
-  { name: "Sanidad, Educación y Familia", icon: "🏥", q: [3, 11, 28] },
-  { name: "Transición Ecológica", icon: "🌱", q: [9, 24, 0] },
+  { name: "Sanidad y Educación", icon: "🏥", q: [11, 28] },
+  { name: "Transición Ecológica", icon: "🌱", q: [9, 24] },
   { name: "Política Territorial", icon: "🗺️", q: [4, 13, 20, 27] },
-  { name: "Cultura y Tradiciones", icon: "🎭", q: [3, 17, 26, 28] }
+  { name: "Cultura y Tradiciones", icon: "🎭", q: [3, 17, 26] }
 ];
 function ministryFitRaw(answers, m) {
   let sum = 0, wsum = 0;
@@ -1084,46 +1084,39 @@ function ministryFitRaw(answers, m) {
 }
 function ministryFit(answers, m) { const f = ministryFitRaw(answers, m); return f == null ? null : Math.round(f); }
 
-// Asignación óptima (método húngaro): filas = ministerios, columnas = "plazas" de cada persona.
-function hungarian(cost) {
-  const n = cost.length, m = cost[0].length, INF = 1e18;
-  const u = new Array(n + 1).fill(0), v = new Array(m + 1).fill(0), p = new Array(m + 1).fill(0), way = new Array(m + 1).fill(0);
-  for (let i = 1; i <= n; i++) {
-    p[0] = i; let j0 = 0;
-    const minv = new Array(m + 1).fill(INF), used = new Array(m + 1).fill(false);
-    do {
-      used[j0] = true; const i0 = p[j0]; let delta = INF, j1 = 0;
-      for (let j = 1; j <= m; j++) if (!used[j]) {
-        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
-        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
-        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
-      }
-      for (let j = 0; j <= m; j++) { if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta; }
-      j0 = j1;
-    } while (p[j0] !== 0);
-    do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
-  }
-  const res = new Array(n).fill(-1);
-  for (let j = 1; j <= m; j++) if (p[j]) res[p[j] - 1] = j - 1;
-  return res;
+// Implicación en un ministerio: lo firmes que son sus opiniones en esos temas (0 = todo en 5-6 o "No sé", 100 = todo 1 o 10).
+function ministryInvolvement(answers, m) {
+  const xs = m.q.map(i => clampAns(answers[i]));
+  return Math.round(xs.reduce((s, a) => s + (a == null ? 0 : Math.abs(a - 5.5) / 4.5), 0) / xs.length * 100);
+}
+// Puntuación para el cargo: 70% acierto con el perfil ideal + 30% implicación en el tema.
+function ministryScore(answers, m) {
+  const fit = ministryFitRaw(answers, m);
+  if (fit == null) return null;
+  const inv = ministryInvolvement(answers, m);
+  return { fit: Math.round(fit), inv, score: 0.7 * fit + 0.3 * inv };
+}
+// La afirmación del ministerio en la que más destaca: muy cerca del ideal (2 puntos como mucho) y con opinión firme.
+function ministryHighlight(answers, m) {
+  let best = null;
+  m.q.forEach(i => {
+    const a = clampAns(answers[i]); if (a == null) return;
+    const gap = Math.abs(a - IDEAL[i].v);
+    if (gap > 2) return;
+    const v = 0.7 * (1 - gap / 2) + 0.3 * Math.abs(a - 5.5) / 4.5 + 0.01 * IDEAL[i].w;
+    if (!best || v > best.v) best = { v, i, a };
+  });
+  return best;
 }
 function buildCabinet(list) {
   const president = presRanking(list)[0].x;
   const pool = list.length > 1 ? list.filter(x => x.docId !== president.docId) : list;
-  const M = MINISTRIES.length;
-  const cap = Math.max(1, Math.ceil(M / pool.length));
-  const slots = [];
-  pool.forEach(x => { for (let k = 0; k < cap; k++) slots.push({ x, k }); });
-  while (slots.length < M) slots.push({ x: null, k: 99 }); // vacantes si no hay gente suficiente
-  // coste = alejarse del ideal; la primera plaza de cada persona tiene prioridad para que todos tengan cartera
-  const cost = MINISTRIES.map(m => slots.map(sl => {
-    if (!sl.x) return 1e6;
-    const f = ministryFitRaw(sl.x.answers, m);
-    return (f == null ? 100 : 100 - f) + (sl.k === 0 ? 0 : 1000 * sl.k);
-  }));
-  const pick = hungarian(cost);
   const owner = {};
-  pick.forEach((j, mi) => { const sl = slots[j]; if (sl && sl.x) owner[mi] = { x: sl.x, f: ministryFit(sl.x.answers, MINISTRIES[mi]) }; });
+  MINISTRIES.forEach((m, mi) => {
+    const ranked = pool.map(x => ({ x, ...ministryScore(x.answers, m) })).filter(r => r.score != null)
+      .sort((p, q) => q.score - p.score || q.fit - p.fit);
+    if (ranked.length) owner[mi] = { ...ranked[0], runnerUp: ranked[1] || null };
+  });
   return { president, owner };
 }
 function renderCabinet(list) {
@@ -1132,30 +1125,34 @@ function renderCabinet(list) {
   const { president, owner } = buildCabinet(list);
   const isMe = state.mine && viewing.docId === state.mine.docId;
   const who = x => x.name + (state.mine && x.docId === state.mine.docId ? " (tú)" : "");
-  const mine = MINISTRIES.map((m, mi) => ({ m, mi, f: ministryFit(viewing.answers, m) })).filter(o => o.f != null).sort((a, b) => a.f - b.f);
-  const held = MINISTRIES.map((m, mi) => owner[mi] && owner[mi].x.docId === viewing.docId ? m : null).filter(Boolean);
-  const worst = mine[0];
-  const role = viewing.docId === president.docId ? "presides el Gobierno" : held.length ? "te encargas de " + listJoin(held.map(m => m.icon + " " + m.name)) : "te quedas sin cartera";
-  const roleOther = viewing.docId === president.docId ? "preside el Gobierno" : held.length ? "se encarga de " + listJoin(held.map(m => m.icon + " " + m.name)) : "se queda sin cartera";
+  const held = MINISTRIES.filter((m, mi) => owner[mi] && owner[mi].x.docId === viewing.docId);
+  const worst = MINISTRIES.map(m => ({ m, r: ministryScore(viewing.answers, m) })).filter(o => o.r).sort((a, b) => a.r.score - b.r.score)[0];
+  const role = viewing.docId === president.docId ? "presid" : held.length ? "carteras" : "sin";
+  const line = role === "presid" ? (isMe ? "Tú presides el Gobierno." : `${viewing.name} preside el Gobierno.`)
+    : role === "carteras" ? (isMe ? "Tú te encargas de " : `${viewing.name} se encarga de `) + listJoin(held.map(m => m.icon + " " + m.name)) + "."
+    : (isMe ? "Te quedas sin cartera: en cada ministerio hay alguien que encaja mejor." : `${viewing.name} se queda sin cartera: en cada ministerio hay alguien que encaja mejor.`);
   $("cab-me").replaceChildren(el("div", { class: "notice", style: "gap:6px" },
-    el("span", null, el("b", null, isMe ? "Tú " + role + "." : `${viewing.name} ${roleOther}.`)),
-    worst ? el("span", { class: "small" }, (isMe ? "Que nunca te dejen tocar " : "Que nunca le dejen tocar ") + worst.m.icon + " " + worst.m.name + ` (${worst.f}/100): es donde más ${isMe ? "te alejas" : "se aleja"} del perfil ideal.`) : null));
-  const rows = [el("div", { class: "pbar", style: "grid-template-columns:2rem 1fr auto" },
-    el("span", { style: "text-align:center" }, "🏛️"),
-    el("span", null, el("b", null, "Presidencia")),
-    el("b", null, who(president)))];
-  const pool = list.filter(x => x.docId !== president.docId);
+    el("b", null, line),
+    worst ? el("span", { class: "small" }, (isMe ? "Que nunca te dejen tocar " : "Que nunca le dejen tocar ") + worst.m.icon + " " + worst.m.name +
+      `: ${worst.r.fit}/100 de acierto con el perfil ideal, su peor tema.`) : null));
+
+  const rows = [el("div", { class: "notice", style: "gap:4px" },
+    el("div", { class: "pbar", style: "grid-template-columns:2rem 1fr auto" },
+      el("span", { style: "text-align:center" }, "🏛️"), el("b", null, "Presidencia"), el("b", null, who(president))),
+    el("span", { class: "small muted", style: "padding-left:2.6rem" }, "Encabeza el ranking presidencial: es quien más se acerca al perfil ideal en el conjunto de los 30 temas."))];
   MINISTRIES.forEach((m, mi) => {
     const o = owner[mi];
-    const top = pool.map(x => ({ x, f: ministryFit(x.answers, m) })).filter(t => t.f != null).sort((a, b) => b.f - a.f)[0];
-    const note = o && top && top.x.docId !== o.x.docId && top.f > o.f
-      ? `${top.x.name} sacaba un ${top.f}, pero ya tenía otras carteras en las que encaja mejor.` : null;
-    rows.push(el("div", { class: "stack", style: "gap:2px" },
-      el("div", { class: "pbar", style: `grid-template-columns:2rem 1fr auto;${o && o.x.docId === viewing.docId ? "font-weight:700" : ""}` },
+    if (!o) return;
+    const h = ministryHighlight(o.x.answers, m);
+    const why = [`${o.fit}/100 de acierto con el perfil ideal y ${o.inv}% de implicación en estos temas.`];
+    if (h) why.push(`Destaca en «${QUESTIONS[h.i].text}»: puso un ${h.a} y el ideal es ${String(IDEAL[h.i].v).replace(".", ",")}.`);
+    if (o.runnerUp) why.push(`Le sigue ${o.runnerUp.x.name}.`);
+    rows.push(el("div", { class: "stack", style: "gap:3px;border-top:1px solid var(--line);padding-top:8px" },
+      el("div", { class: "pbar", style: `grid-template-columns:2rem 1fr auto;${o.x.docId === viewing.docId ? "font-weight:700" : ""}` },
         el("span", { style: "text-align:center" }, m.icon),
         el("span", { class: "name", style: "white-space:normal" }, m.name),
-        el("span", { style: "text-align:right" }, o ? who(o.x) + " " : "Vacante ", o ? el("span", { class: "num small muted" }, o.f + "/100") : null)),
-      note ? el("span", { class: "muted", style: "font-size:.75rem;padding-left:2.6rem" }, note) : null));
+        el("span", { style: "text-align:right" }, who(o.x) + " ", el("span", { class: "num small muted" }, Math.round(o.score) + "/100"))),
+      el("span", { class: "muted", style: "font-size:.78rem;padding-left:2.6rem" }, why.join(" "))));
   });
   $("cab-list").replaceChildren(...rows);
 }
