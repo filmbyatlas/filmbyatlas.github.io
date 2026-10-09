@@ -195,6 +195,14 @@ label { font-weight: 600; font-size: .9rem; }
         <button class="btn" type="button" id="resume-btn" hidden>Seguir donde lo dejé</button>
         <button class="btn" type="button" id="mine-btn" hidden>Ver mis resultados</button>
       </div>
+      <div id="dup-box" class="notice" hidden>
+        <p><b id="dup-title"></b></p>
+        <div class="row">
+          <button class="btn primary" type="button" id="dup-view">Ver mis resultados</button>
+          <button class="btn" type="button" id="dup-redo">Repetir el test</button>
+        </div>
+        <p class="small muted">Si repites el test, se sustituye tu resultado anterior. ¿Eres otra persona con el mismo nombre? Añade tu apellido.</p>
+      </div>
     </form>
 
     <section class="card" id="intro-group">
@@ -961,6 +969,25 @@ function refreshGroupViews() {
   if (state.screen === "result") { renderGroupText(); renderGroup(); }
 }
 
+// ---------- Nombres repetidos ----------
+let dupEntry = null;
+function normName(s) { return cleanName(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+function findByName(name) {
+  const n = normName(name);
+  return state.entries.find(e => normName(e.name) === n) || null;
+}
+function claimEntry(entry) {
+  state.mine = { docId: entry.docId, name: entry.name, answers: entry.answers.slice() };
+  store("votos.mine", state.mine);
+}
+function beginQuiz(name) {
+  state.name = name;
+  state.answers = new Array(N).fill(null);
+  state.idx = 0;
+  saveDraft();
+  show("quiz");
+}
+
 // ---------- Eventos ----------
 function wire() {
   buildBoxes();
@@ -969,12 +996,32 @@ function wire() {
     const name = cleanName($("name-input").value);
     if (!name) { $("name-err").hidden = false; $("name-input").focus(); return; }
     $("name-err").hidden = true;
-    state.name = name;
-    state.answers = new Array(N).fill(null);
-    state.idx = 0;
-    saveDraft();
-    show("quiz");
+    const existing = findByName(name);
+    if (existing) {
+      dupEntry = existing;
+      $("dup-title").textContent = `Ya hay un resultado de «${existing.name}» en el grupo. ¿Eres tú?`;
+      $("dup-box").hidden = false;
+      $("dup-view").focus();
+      return;
+    }
+    beginQuiz(name);
   });
+  // Mismo nombre que alguien del grupo: ver su resultado o repetir el test sobre la misma fila.
+  $("dup-view").addEventListener("click", () => {
+    if (!dupEntry) return;
+    claimEntry(dupEntry);
+    $("dup-box").hidden = true;
+    state.viewing = state.mine;
+    state.saveState = null;
+    show("result");
+  });
+  $("dup-redo").addEventListener("click", () => {
+    if (!dupEntry) return;
+    claimEntry(dupEntry);
+    $("dup-box").hidden = true;
+    beginQuiz(dupEntry.name);
+  });
+  $("name-input").addEventListener("input", () => { $("dup-box").hidden = true; dupEntry = null; });
   $("resume-btn").addEventListener("click", () => {
     const d = store("votos.draft");
     if (!d) return;
