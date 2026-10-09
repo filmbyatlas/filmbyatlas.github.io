@@ -936,7 +936,7 @@ function drawChart(container, entries, highlightId, showParties, showNames) {
     const ix = X(IDEAL_SC.e), iy = Y(IDEAL_SC.s), r = 9, pts5 = [];
     for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; pts5.push((ix + rr * Math.cos(a)).toFixed(1) + "," + (iy + rr * Math.sin(a)).toFixed(1)); }
     const g = sv("g", {});
-    g.append(sv("title", {}, "Perfil presidencial ideal: lo que piensa la mayoría de España"));
+    g.append(sv("title", {}, "Perfil presidencial ideal: evidencia en los temas comprobables y mayoría en los de valores"));
     g.append(sv("polygon", { points: pts5.join(" "), fill: "var(--mark)", stroke: "var(--ink)", "stroke-width": 1.5 }));
     g.append(sv("text", { x: ix, y: iy + 21, "text-anchor": "middle", "font-size": 10, "font-weight": 700, fill: "var(--ink)", stroke: "var(--bg)", "stroke-width": 3, "paint-order": "stroke" }, "ideal"));
     svg.append(g);
@@ -997,42 +997,43 @@ function refreshGroupViews() {
 }
 
 // ---------- Ranking presidencial ----------
-// Perfil ideal = opinión mayoritaria de los españoles en cada afirmación (escala 1-10),
-// estimada a partir de encuestas (CIS, 40dB, Simple Lógica, More in Common, Sigma Dos…).
-// Con un Congreso fragmentado, gobernar exige representar a la mayoría y poder pactar:
-// el mejor presidente es quien más coincide con el país, no quien es más de un bando.
+// Perfil ideal (escala 1-10) en dos tipos de afirmación:
+//  t "e" (evidencia): temas comprobables con datos; manda lo que dicen los estudios y organismos
+//        expertos (Banco de España, OCDE, Fedea, ESADE…), aunque la mayoría opine otra cosa.
+//  t "m" (mayoría): cuestiones de valores sin respuesta "científica"; manda la opinión mayoritaria
+//        según encuestas (CIS, 40dB, More in Common…). También cuando los estudios no son concluyentes.
 // Vivienda e inmigración, los dos primeros problemas en el CIS de 2026, pesan más.
 const IDEAL = [
-  { v: 7,   w: 2,   why: "Limitar alquileres tiene apoyo mayoritario y la vivienda es el primer problema (≈45% en el CIS)." },
-  { v: 5.5, w: 1.5, why: "País dividido: se ve la inmigración como necesaria pero preocupa cada vez más." },
-  { v: 5,   w: 1,   why: "Opinión dividida sobre bajar impuestos." },
-  { v: 5.5, w: 1,   why: "Valor de la familia alto, sin apoyo claro a privilegiar un solo modelo." },
-  { v: 3.5, w: 1,   why: "En el conjunto de España, mayoría contraria a un referéndum de independencia." },
-  { v: 8,   w: 1,   why: "Amplio apoyo a que las grandes fortunas paguen más." },
-  { v: 7,   w: 1,   why: "Mayoría a favor del aborto en la sanidad pública." },
-  { v: 4,   w: 1,   why: "Mayoría desconfía de que el mercado reparta solo la riqueza." },
-  { v: 5.5, w: 1,   why: "Preocupa la seguridad, pero sin apoyo mayoritario a recortar libertades." },
-  { v: 6.5, w: 1,   why: "Buena imagen de lo público en energía y tren." },
-  { v: 7.5, w: 1,   why: "El 72% apoya la eutanasia (CIS)." },
-  { v: 3.5, w: 1,   why: "Mayoría prefiere sanidad y educación de gestión pública." },
-  { v: 4.5, w: 1,   why: "Minoría amplia cree que las leyes de igualdad han ido lejos, sobre todo entre hombres jóvenes." },
-  { v: 5,   w: 1,   why: "División entre mantener el Estado autonómico y recentralizar." },
-  { v: 7,   w: 1,   why: "Subir el salario mínimo cuenta con apoyo mayoritario." },
-  { v: 5.5, w: 1,   why: "División, con ligera mayoría a favor de regular el cannabis." },
-  { v: 5.5, w: 1,   why: "Opinión dividida sobre si las ayudas desincentivan trabajar." },
-  { v: 4.5, w: 1,   why: "Los toros dividen, con más rechazo en el norte y más apoyo en el sur." },
-  { v: 6,   w: 1,   why: "Ligera mayoría a favor de una renta básica." },
-  { v: 4,   w: 1,   why: "La autodeterminación de género sin requisitos tiene apoyo minoritario." },
-  { v: 4,   w: 1,   why: "En el conjunto de España, minoría a favor de la plurinacionalidad." },
-  { v: 3,   w: 1,   why: "Amplio rechazo a abaratar el despido." },
-  { v: 6.5, w: 1.5, why: "Mayoría a favor de más control migratorio (p. ej. 83% deportar a irregulares que delinquen, More in Common)." },
-  { v: 8,   w: 1,   why: "Entre el 66% y el 80% apoya reducir la jornada sin bajar el sueldo." },
-  { v: 6.5, w: 1,   why: "Mayoría preocupada por el clima, con reservas ante los costes." },
-  { v: 6.5, w: 1,   why: "El impuesto de sucesiones es impopular incluso entre votantes de izquierda." },
-  { v: 5.5, w: 1,   why: "País partido entre monarquía y república." },
-  { v: 6.5, w: 1,   why: "En el conjunto de España, mayoría a favor del castellano como lengua vehicular." },
-  { v: 6,   w: 1,   why: "Ligera mayoría por una escuela pública laica." },
-  { v: 5.5, w: 1,   why: "Opinión dividida sobre el poder de los sindicatos." }
+  { v: 4.5, w: 2,   t: "e", why: "Los topes bajan algo los precios (3-6%) pero reducen la oferta de alquiler (≈10% menos contratos en Cataluña, ESADE; Fedea). Mejor construir más vivienda asequible." },
+  { v: 5.5, w: 1.5, t: "m", why: "Cuestión cultural. País dividido: se ve la inmigración como necesaria pero preocupa cada vez más." },
+  { v: 4,   w: 1,   t: "e", why: "Las bajadas de impuestos rara vez se pagan solas, y España tiene una deuda pública cercana al 100% del PIB." },
+  { v: 5.5, w: 1,   t: "m", why: "Cuestión de valores. Se valora la familia, sin apoyo claro a privilegiar un solo modelo." },
+  { v: 3.5, w: 1,   t: "m", why: "Cuestión de valores. En el conjunto de España, mayoría contraria a un referéndum de independencia." },
+  { v: 6,   w: 1,   t: "e", why: "La OCDE defiende gravar más la riqueza heredada, pero los impuestos al patrimonio recaudan poco y favorecen la huida de contribuyentes." },
+  { v: 7,   w: 1,   t: "m", why: "Cuestión de valores. Mayoría a favor del aborto en la sanidad pública." },
+  { v: 4,   w: 1,   t: "m", why: "Mayoría desconfía de que el mercado reparta solo la riqueza." },
+  { v: 4,   w: 1,   t: "e", why: "España tiene una de las tasas de criminalidad más bajas de la UE, y los estudios muestran que disuade más la probabilidad de ser castigado que la dureza de la pena." },
+  { v: 6.5, w: 1,   t: "m", why: "Los estudios no dan un ganador claro entre gestión pública y privada; buena imagen de lo público en energía y tren." },
+  { v: 7.5, w: 1,   t: "m", why: "Cuestión de valores. El 72% apoya la eutanasia (CIS)." },
+  { v: 3.5, w: 1,   t: "m", why: "Los estudios no dan un ganador claro; la mayoría prefiere gestión pública." },
+  { v: 4.5, w: 1,   t: "m", why: "Cuestión de valores. Minoría amplia cree que las leyes de igualdad han ido lejos, sobre todo entre hombres jóvenes." },
+  { v: 5,   w: 1,   t: "m", why: "Cuestión de valores. División entre mantener el Estado autonómico y recentralizar." },
+  { v: 5,   w: 1,   t: "e", why: "El Banco de España estimó que la subida del 22% de 2019 costó empleo entre los afectados (6-11 puntos); ya está alto respecto al salario medio, así que más subidas tienen más riesgo." },
+  { v: 5.5, w: 1,   t: "m", why: "Evidencia internacional mixta (Canadá, Uruguay); ligera mayoría a favor de regular." },
+  { v: 4,   w: 1,   t: "e", why: "Los estudios encuentran efectos pequeños: en el experimento de Finlandia, recibir dinero sin condiciones no redujo el empleo." },
+  { v: 4.5, w: 1,   t: "m", why: "Cuestión cultural. Los toros dividen, con más rechazo en el norte y más apoyo en el sur." },
+  { v: 3.5, w: 1,   t: "e", why: "En Finlandia no mejoró el empleo y en España costaría en torno al 17% del PIB (BBVA Research); mejor ayudas dirigidas a quien lo necesita." },
+  { v: 4,   w: 1,   t: "m", why: "Cuestión de valores. La autodeterminación de género sin requisitos tiene apoyo minoritario." },
+  { v: 4,   w: 1,   t: "m", why: "Cuestión de valores. En el conjunto de España, minoría a favor de la plurinacionalidad." },
+  { v: 4,   w: 1,   t: "e", why: "La reforma laboral de 2022 redujo mucho la temporalidad sin destruir empleo; abaratar el despido no es la palanca principal." },
+  { v: 4.5, w: 1.5, t: "e", why: "El Banco de España calcula que el envejecimiento exigirá muchos más trabajadores; frenar la mano de obra perjudicaría pensiones y crecimiento. Sí hay consenso en controlar la entrada irregular." },
+  { v: 7.5, w: 1,   t: "m", why: "Entre el 66% y el 80% lo apoya; la evidencia sobre productividad aún no es concluyente, sobre todo en pymes." },
+  { v: 7.5, w: 1,   t: "e", why: "Consenso científico: los costes de no actuar contra el cambio climático superan a los de actuar, y España es de los países más expuestos." },
+  { v: 3.5, w: 1,   t: "e", why: "La OCDE considera los impuestos de sucesiones bien diseñados de los más eficientes y justos, aunque sean impopulares." },
+  { v: 5.5, w: 1,   t: "m", why: "Cuestión de valores. País partido entre monarquía y república." },
+  { v: 6.5, w: 1,   t: "m", why: "Cuestión de valores. En el conjunto de España, mayoría a favor del castellano como lengua vehicular." },
+  { v: 6,   w: 1,   t: "m", why: "Cuestión de valores. Ligera mayoría por una escuela pública laica." },
+  { v: 5.5, w: 1,   t: "m", why: "Opinión dividida sobre el poder de los sindicatos." }
 ];
 const IDEAL_SC = computeScores(IDEAL.map(x => x.v));
 function presScore(answers) {
@@ -1055,7 +1056,8 @@ function renderPresident() {
 
   $("pres-intro").replaceChildren(
     el("p", null, "España, 2026: la vivienda es el primer problema del país (cerca de la mitad la cita en el CIS), seguida de la inmigración y la economía, y el Congreso está tan fragmentado que nadie gobierna sin pactos."),
-    el("p", null, `Por eso el presidente ideal no se mide por ser de izquierdas o de derechas, sino por coincidir con lo que piensa la mayoría de los españoles tema a tema, según las encuestas. Ese perfil sale «${idealIdeo.label}» y es la estrella del mapa del grupo. Vivienda e inmigración pesan más.`)
+    el("p", null, "El perfil ideal no premia ser de izquierdas o de derechas. En los temas que se pueden comprobar con datos (vivienda, impuestos, empleo, inmigración, clima…) manda lo que dicen los estudios, aunque no sea lo más popular. En las cuestiones de valores (aborto, monarquía, toros, idiomas…) no hay respuesta científica, así que manda lo que piensa la mayoría de los españoles."),
+    el("p", null, `Ese perfil sale «${idealIdeo.label}» y es la estrella del mapa del grupo. Vivienda e inmigración pesan más.`)
   );
 
   const pos = ranking.findIndex(r => r.x.docId === viewing.docId);
@@ -1083,12 +1085,13 @@ function renderPresident() {
 
   const diffs = IDEAL.map((it, i) => ({ it, q: QUESTIONS[i], a: clampAns(viewing.answers[i]) }))
     .filter(d => d.a != null).sort((p, q) => q.it.w * Math.abs(q.a - q.it.v) - p.it.w * Math.abs(p.a - p.it.v)).slice(0, 2);
-  $("pres-far").replaceChildren(...(diffs.length ? [el("p", { class: "small" }, el("b", null, isMe ? "Dónde más te alejas de la mayoría: " : `Dónde más se aleja ${viewing.name} de la mayoría: `)),
+  $("pres-far").replaceChildren(...(diffs.length ? [el("p", { class: "small" }, el("b", null, isMe ? "Dónde más te alejas del perfil ideal: " : `Dónde más se aleja ${viewing.name} del perfil ideal: `)),
     ...diffs.map(d => el("div", { class: "notice", style: "gap:4px" }, el("span", null, d.q.text),
-      el("span", { class: "small" }, el("b", null, (isMe ? "Tú" : viewing.name) + ": "), el("span", { class: "num" }, d.a + "/10"), "  ·  ", el("b", null, "Mayoría: "), el("span", { class: "num" }, String(d.it.v).replace(".", ",") + "/10")),
+      el("span", { class: "small" }, el("b", null, (isMe ? "Tú" : viewing.name) + ": "), el("span", { class: "num" }, d.a + "/10"), "  ·  ", el("b", null, (d.it.t === "e" ? "Según los estudios: " : "Mayoría: ")), el("span", { class: "num" }, String(d.it.v).replace(".", ",") + "/10")),
       el("span", { class: "small muted" }, d.it.why)))] : []));
 
   $("pres-ideal").replaceChildren(...QUESTIONS.map((q, i) => el("div", { class: "small", style: "border-top:1px solid var(--line);padding-top:6px" },
+    el("span", { class: "axis-tag", style: `margin-right:6px;${IDEAL[i].t === "e" ? "border-color:var(--ok);color:var(--ok)" : ""}` }, IDEAL[i].t === "e" ? "Evidencia" : "Mayoría"),
     el("b", { class: "num" }, String(IDEAL[i].v).replace(".", ",") + "/10 "), q.text, el("br"), el("span", { class: "muted" }, IDEAL[i].why))));
 }
 
