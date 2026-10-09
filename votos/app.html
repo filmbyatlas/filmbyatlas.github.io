@@ -936,7 +936,7 @@ function drawChart(container, entries, highlightId, showParties, showNames) {
     const ix = X(IDEAL_SC.e), iy = Y(IDEAL_SC.s), r = 9, pts5 = [];
     for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; pts5.push((ix + rr * Math.cos(a)).toFixed(1) + "," + (iy + rr * Math.sin(a)).toFixed(1)); }
     const g = sv("g", {});
-    g.append(sv("title", {}, "Perfil presidencial ideal: evidencia en los temas comprobables y mayoría en los de valores"));
+    g.append(sv("title", {}, "Perfil presidencial ideal: evidencia en los temas comprobables y posturas pactables en los de valores"));
     g.append(sv("polygon", { points: pts5.join(" "), fill: "var(--mark)", stroke: "var(--ink)", "stroke-width": 1.5 }));
     g.append(sv("text", { x: ix, y: iy + 21, "text-anchor": "middle", "font-size": 10, "font-weight": 700, fill: "var(--ink)", stroke: "var(--bg)", "stroke-width": 3, "paint-order": "stroke" }, "ideal"));
     svg.append(g);
@@ -997,43 +997,43 @@ function refreshGroupViews() {
 }
 
 // ---------- Ranking presidencial ----------
-// Perfil ideal (escala 1-10) en dos tipos de afirmación:
-//  t "e" (evidencia): temas comprobables con datos; manda lo que dicen los estudios y organismos
-//        expertos (Banco de España, OCDE, Fedea, ESADE…), aunque la mayoría opine otra cosa.
-//  t "m" (mayoría): cuestiones de valores sin respuesta "científica"; manda la opinión mayoritaria
-//        según encuestas (CIS, 40dB, More in Common…). También cuando los estudios no son concluyentes.
-// Vivienda e inmigración, los dos primeros problemas en el CIS de 2026, pesan más.
+// Perfil del presidente que mejor le iría a España (escala 1-10), en dos tipos de afirmación:
+//  t "e" (evidencia): temas comprobables con datos; manda el diagnóstico de los organismos expertos
+//        (OCDE, FMI, Comisión Europea, Banco de España) y los estudios (Fedea, ESADE…).
+//  t "v" (valores o sin evidencia clara): ningún estudio dice qué postura es mejor; como gobernar un país
+//        fragmentado exige pactar entre bloques, el ideal es una postura pactable (5,5) y pesa menos.
+// Vivienda, inmigración y deuda pública pesan más por ser los retos principales.
 const IDEAL = [
-  { v: 4.5, w: 2,   t: "e", why: "Los topes bajan algo los precios (3-6%) pero reducen la oferta de alquiler (≈10% menos contratos en Cataluña, ESADE; Fedea). Mejor construir más vivienda asequible." },
-  { v: 5.5, w: 1.5, t: "m", why: "Cuestión cultural. País dividido: se ve la inmigración como necesaria pero preocupa cada vez más." },
-  { v: 4,   w: 1,   t: "e", why: "Las bajadas de impuestos rara vez se pagan solas, y España tiene una deuda pública cercana al 100% del PIB." },
-  { v: 5.5, w: 1,   t: "m", why: "Cuestión de valores. Se valora la familia, sin apoyo claro a privilegiar un solo modelo." },
-  { v: 3.5, w: 1,   t: "m", why: "Cuestión de valores. En el conjunto de España, mayoría contraria a un referéndum de independencia." },
-  { v: 6,   w: 1,   t: "e", why: "La OCDE defiende gravar más la riqueza heredada, pero los impuestos al patrimonio recaudan poco y favorecen la huida de contribuyentes." },
-  { v: 7,   w: 1,   t: "m", why: "Cuestión de valores. Mayoría a favor del aborto en la sanidad pública." },
-  { v: 4,   w: 1,   t: "m", why: "Mayoría desconfía de que el mercado reparta solo la riqueza." },
-  { v: 4,   w: 1,   t: "e", why: "España tiene una de las tasas de criminalidad más bajas de la UE, y los estudios muestran que disuade más la probabilidad de ser castigado que la dureza de la pena." },
-  { v: 6.5, w: 1,   t: "m", why: "Los estudios no dan un ganador claro entre gestión pública y privada; buena imagen de lo público en energía y tren." },
-  { v: 7.5, w: 1,   t: "m", why: "Cuestión de valores. El 72% apoya la eutanasia (CIS)." },
-  { v: 3.5, w: 1,   t: "m", why: "Los estudios no dan un ganador claro; la mayoría prefiere gestión pública." },
-  { v: 4.5, w: 1,   t: "m", why: "Cuestión de valores. Minoría amplia cree que las leyes de igualdad han ido lejos, sobre todo entre hombres jóvenes." },
-  { v: 5,   w: 1,   t: "m", why: "Cuestión de valores. División entre mantener el Estado autonómico y recentralizar." },
-  { v: 5,   w: 1,   t: "e", why: "El Banco de España estimó que la subida del 22% de 2019 costó empleo entre los afectados (6-11 puntos); ya está alto respecto al salario medio, así que más subidas tienen más riesgo." },
-  { v: 5.5, w: 1,   t: "m", why: "Evidencia internacional mixta (Canadá, Uruguay); ligera mayoría a favor de regular." },
-  { v: 4,   w: 1,   t: "e", why: "Los estudios encuentran efectos pequeños: en el experimento de Finlandia, recibir dinero sin condiciones no redujo el empleo." },
-  { v: 4.5, w: 1,   t: "m", why: "Cuestión cultural. Los toros dividen, con más rechazo en el norte y más apoyo en el sur." },
-  { v: 3.5, w: 1,   t: "e", why: "En Finlandia no mejoró el empleo y en España costaría en torno al 17% del PIB (BBVA Research); mejor ayudas dirigidas a quien lo necesita." },
-  { v: 4,   w: 1,   t: "m", why: "Cuestión de valores. La autodeterminación de género sin requisitos tiene apoyo minoritario." },
-  { v: 4,   w: 1,   t: "m", why: "Cuestión de valores. En el conjunto de España, minoría a favor de la plurinacionalidad." },
-  { v: 4,   w: 1,   t: "e", why: "La reforma laboral de 2022 redujo mucho la temporalidad sin destruir empleo; abaratar el despido no es la palanca principal." },
-  { v: 4.5, w: 1.5, t: "e", why: "El Banco de España calcula que el envejecimiento exigirá muchos más trabajadores; frenar la mano de obra perjudicaría pensiones y crecimiento. Sí hay consenso en controlar la entrada irregular." },
-  { v: 7.5, w: 1,   t: "m", why: "Entre el 66% y el 80% lo apoya; la evidencia sobre productividad aún no es concluyente, sobre todo en pymes." },
-  { v: 7.5, w: 1,   t: "e", why: "Consenso científico: los costes de no actuar contra el cambio climático superan a los de actuar, y España es de los países más expuestos." },
-  { v: 3.5, w: 1,   t: "e", why: "La OCDE considera los impuestos de sucesiones bien diseñados de los más eficientes y justos, aunque sean impopulares." },
-  { v: 5.5, w: 1,   t: "m", why: "Cuestión de valores. País partido entre monarquía y república." },
-  { v: 6.5, w: 1,   t: "m", why: "Cuestión de valores. En el conjunto de España, mayoría a favor del castellano como lengua vehicular." },
-  { v: 6,   w: 1,   t: "m", why: "Cuestión de valores. Ligera mayoría por una escuela pública laica." },
-  { v: 5.5, w: 1,   t: "m", why: "Opinión dividida sobre el poder de los sindicatos." }
+  { v: 4, w: 2, t: "e", why: "Los expertos (FMI, Banco de España) piden construir más y agilizar permisos. Los topes bajan algo los precios (3-6%) pero reducen la oferta de alquiler (≈10% menos contratos en Cataluña, ESADE; Fedea)." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 3.5, w: 1.5, t: "e", why: "Con la deuda cerca del 100% del PIB, el FMI y la Comisión Europea piden reducir el déficit (≈0,6 puntos de PIB al año). Las bajadas de impuestos rara vez se pagan solas." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5, w: 1, t: "e", why: "Los organismos recomiendan ampliar bases (IVA, fiscalidad verde) más que subir tipos a unos pocos; la OCDE sí defiende gravar más las herencias. Los impuestos al patrimonio recaudan poco y favorecen la huida de contribuyentes." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Pregunta en parte ideológica: los mercados asignan bien recursos pero no garantizan un reparto justo. Los estudios no dan una respuesta clara, así que lo mejor para gobernar es una postura pactable, lejos de los extremos." },
+  { v: 4, w: 1, t: "e", why: "España tiene una de las tasas de criminalidad más bajas de la UE, y los estudios muestran que disuade más la probabilidad de ser castigado que la dureza de la pena." },
+  { v: 5.5, w: 0.5, t: "v", why: "No hay ganador claro entre gestión pública y privada de energía y tren. Los estudios no dan una respuesta clara, así que lo mejor para gobernar es una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Las experiencias de gestión privada en sanidad dan resultados dispares. Los estudios no dan una respuesta clara, así que lo mejor para gobernar es una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Debate territorial sin respuesta técnica clara (la OCDE sí pide reducir la fragmentación de normas entre comunidades). Los estudios no dan una respuesta clara, así que lo mejor para gobernar es una postura pactable, lejos de los extremos." },
+  { v: 5, w: 1, t: "e", why: "El Banco de España estimó que la subida del 22% de 2019 costó empleo entre los afectados (6-11 puntos); ya está alto respecto al salario medio, así que más subidas tienen más riesgo." },
+  { v: 5.5, w: 0.5, t: "v", why: "Evidencia internacional mixta (Canadá, Uruguay). Los estudios no dan una respuesta clara, así que lo mejor para gobernar es una postura pactable, lejos de los extremos." },
+  { v: 4, w: 1, t: "e", why: "Los estudios encuentran efectos pequeños: en el experimento de Finlandia, recibir dinero sin condiciones no redujo el empleo." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 3, w: 1, t: "e", why: "En Finlandia no mejoró el empleo y en España costaría en torno al 17% del PIB (BBVA Research), incompatible con reducir la deuda; mejor ayudas dirigidas." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 4.5, w: 1, t: "e", why: "La reforma laboral de 2022 redujo mucho la temporalidad sin destruir empleo; abaratar el despido no es la palanca principal según la evidencia reciente." },
+  { v: 4, w: 1.5, t: "e", why: "La OCDE señala el envejecimiento como reto clave y el Banco de España calcula que hará falta mucha más población en edad de trabajar: frenar la mano de obra perjudica pensiones y crecimiento. Sí hay consenso en controlar la entrada irregular." },
+  { v: 5.5, w: 0.5, t: "v", why: "La evidencia sobre productividad aún no es concluyente, sobre todo en pymes, y la productividad es la prioridad que marca la OCDE. Los estudios no dan una respuesta clara, así que lo mejor para gobernar es una postura pactable, lejos de los extremos." },
+  { v: 7.5, w: 1, t: "e", why: "Consenso científico: no actuar sale más caro que actuar, y España es de los países europeos más expuestos. La Comisión Europea pide más fiscalidad verde." },
+  { v: 3.5, w: 1, t: "e", why: "La OCDE considera los impuestos de sucesiones bien diseñados de los más eficientes y justos, aunque sean impopulares." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Cuestión de valores: ningún estudio dice qué postura es mejor para el país. Para gobernar uno fragmentado y polarizado conviene una postura pactable, lejos de los extremos." },
+  { v: 5.5, w: 0.5, t: "v", why: "Pregunta de opinión sobre equilibrio de poder. Los estudios no dan una respuesta clara, así que lo mejor para gobernar es una postura pactable, lejos de los extremos." }
 ];
 const IDEAL_SC = computeScores(IDEAL.map(x => x.v));
 function presScore(answers) {
@@ -1055,10 +1055,11 @@ function renderPresident() {
   const idealIdeo = ideologyOf(IDEAL_SC);
 
   $("pres-intro").replaceChildren(
-    el("p", null, "España, 2026: la vivienda es el primer problema del país (cerca de la mitad la cita en el CIS), seguida de la inmigración y la economía, y el Congreso está tan fragmentado que nadie gobierna sin pactos."),
-    el("p", null, "El perfil ideal no premia ser de izquierdas o de derechas. En los temas que se pueden comprobar con datos (vivienda, impuestos, empleo, inmigración, clima…) manda lo que dicen los estudios, aunque no sea lo más popular. En las cuestiones de valores (aborto, monarquía, toros, idiomas…) no hay respuesta científica, así que manda lo que piensa la mayoría de los españoles."),
-    el("p", null, `Ese perfil sale «${idealIdeo.label}» y es la estrella del mapa del grupo. Vivienda e inmigración pesan más.`)
+    el("p", null, "No es lo que quiere la mayoría, sino lo que más le convendría al país. Los organismos que analizan España (OCDE, FMI, Comisión Europea y Banco de España) coinciden en cuatro prioridades: reducir la deuda pública y asegurar las pensiones, aumentar la productividad, construir más vivienda y afrontar el envejecimiento de la población. En esos temas el ideal es lo que dicen los estudios, aunque sea impopular."),
+    el("p", null, "En las cuestiones de valores (aborto, monarquía, toros, idiomas…) ningún estudio dice qué es mejor para el país. Lo que sí se sabe es que España es un país muy fragmentado y polarizado, donde nadie gobierna sin pactar entre bloques. Por eso ahí el ideal es una postura pactable, sin extremos, y esos temas pesan menos."),
+    el("p", null, `El perfil resultante sale «${idealIdeo.label}» y es la estrella del mapa del grupo. El test no puede medir lo que también importa mucho en un presidente: honestidad, experiencia y capacidad de gestión.`)
   );
+
 
   const pos = ranking.findIndex(r => r.x.docId === viewing.docId);
   const mine = ranking[pos];
@@ -1087,11 +1088,11 @@ function renderPresident() {
     .filter(d => d.a != null).sort((p, q) => q.it.w * Math.abs(q.a - q.it.v) - p.it.w * Math.abs(p.a - p.it.v)).slice(0, 2);
   $("pres-far").replaceChildren(...(diffs.length ? [el("p", { class: "small" }, el("b", null, isMe ? "Dónde más te alejas del perfil ideal: " : `Dónde más se aleja ${viewing.name} del perfil ideal: `)),
     ...diffs.map(d => el("div", { class: "notice", style: "gap:4px" }, el("span", null, d.q.text),
-      el("span", { class: "small" }, el("b", null, (isMe ? "Tú" : viewing.name) + ": "), el("span", { class: "num" }, d.a + "/10"), "  ·  ", el("b", null, (d.it.t === "e" ? "Según los estudios: " : "Mayoría: ")), el("span", { class: "num" }, String(d.it.v).replace(".", ",") + "/10")),
+      el("span", { class: "small" }, el("b", null, (isMe ? "Tú" : viewing.name) + ": "), el("span", { class: "num" }, d.a + "/10"), "  ·  ", el("b", null, (d.it.t === "e" ? "Según los estudios: " : "Postura pactable: ")), el("span", { class: "num" }, String(d.it.v).replace(".", ",") + "/10")),
       el("span", { class: "small muted" }, d.it.why)))] : []));
 
   $("pres-ideal").replaceChildren(...QUESTIONS.map((q, i) => el("div", { class: "small", style: "border-top:1px solid var(--line);padding-top:6px" },
-    el("span", { class: "axis-tag", style: `margin-right:6px;${IDEAL[i].t === "e" ? "border-color:var(--ok);color:var(--ok)" : ""}` }, IDEAL[i].t === "e" ? "Evidencia" : "Mayoría"),
+    el("span", { class: "axis-tag", style: `margin-right:6px;${IDEAL[i].t === "e" ? "border-color:var(--ok);color:var(--ok)" : ""}` }, IDEAL[i].t === "e" ? "Evidencia" : "Sin respuesta técnica"),
     el("b", { class: "num" }, String(IDEAL[i].v).replace(".", ",") + "/10 "), q.text, el("br"), el("span", { class: "muted" }, IDEAL[i].why))));
 }
 
