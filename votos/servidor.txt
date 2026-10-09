@@ -1,0 +1,99 @@
+// Servidor del test "¿A quién votarías?" (Google Apps Script, proyecto independiente).
+// Sirve la página publicada en GitHub Pages y guarda cada resultado como una fila
+// de la pestaña "Resultados" de la Hoja de cálculo SHEET_ID.
+
+const SHEET_ID = '1Ofw6yDnEorM2wekjOie08aJ_yVx9PoQ1DqyQxWor35E';
+const PAGE_URL = 'https://filmbyatlas.github.io/votos/app.html';
+const SHEET_NAME = 'Resultados';
+const HEADERS = ['id', 'nombre', 'fecha', 'economia', 'sociedad', 'territorio', 'respuestas'];
+const N_QUESTIONS = 30;
+
+function doGet() {
+  const res = UrlFetchApp.fetch(PAGE_URL + '?v=' + Date.now(), { muteHttpExceptions: true });
+  const html = res.getResponseCode() === 200
+    ? res.getContentText('UTF-8')
+    : '<p style="font-family:sans-serif;padding:16px">No se ha podido cargar el test. Recarga la página en un momento.</p>';
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('¿A quién votarías?')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function sheet_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_NAME);
+    sh.appendRow(HEADERS);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+// Evita que un nombre como "=HYPERLINK(...)" se guarde como fórmula.
+function safeText_(s) {
+  s = String(s || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+  return /^[=+\-@]/.test(s) ? "'" + s : s;
+}
+
+function parseAnswers_(txt) {
+  const parts = String(txt || '').split(',');
+  if (parts.length !== N_QUESTIONS) return null;
+  return parts.map(function (p) {
+    const n = Number(p);
+    return p !== '' && n >= 1 && n <= 10 ? Math.round(n) : null;
+  });
+}
+
+function getResults() {
+  const sh = sheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, HEADERS.length).getValues()
+    .map(function (r) {
+      return {
+        id: String(r[0]),
+        name: String(r[1]).replace(/^'/, ''),
+        createdAt: r[2] instanceof Date ? r[2].toISOString() : String(r[2]),
+        answers: parseAnswers_(r[6])
+      };
+    })
+    .filter(function (x) { return x.id && x.name && x.answers; });
+}
+
+function saveResult(d) {
+  if (!d || typeof d !== 'object') throw new Error('Datos vacíos');
+  const id = String(d.id || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80);
+  const name = safeText_(d.name);
+  if (!id || !name) throw new Error('Falta el nombre');
+  if (!Array.isArray(d.answers) || d.answers.length !== N_QUESTIONS) throw new Error('Respuestas incompletas');
+  const answers = d.answers.map(function (a) {
+    const n = Number(a);
+    return a !== null && n >= 1 && n <= 10 ? String(Math.round(n)) : '';
+  }).join(',');
+  const num = function (v) { v = Number(v); return isFinite(v) ? Math.max(-100, Math.min(100, Math.round(v))) : 0; };
+  const row = [id, name, new Date(), num(d.e), num(d.s), num(d.t), answers];
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sh = sheet_();
+    const last = sh.getLastRow();
+    let target = -1;
+    if (last >= 2) {
+      const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+      for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) { target = i + 2; break; }
+    }
+    // Columna de respuestas como texto para que "7,3,10" no se convierta en número.
+    if (target > 0) {
+      sh.getRange(target, 7).setNumberFormat('@');
+      sh.getRange(target, 1, 1, row.length).setValues([row]);
+    } else {
+      sh.appendRow(row.slice(0, 6).concat(['']));
+      sh.getRange(sh.getLastRow(), 7).setNumberFormat('@').setValue(answers);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return getResults();
+}
