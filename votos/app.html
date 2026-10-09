@@ -278,6 +278,21 @@ label { font-weight: 600; font-size: .9rem; }
       <h2>Comparado con el grupo</h2>
       <div class="analysis" id="r-group-text"></div>
     </section>
+
+    <section class="card" id="pres-card">
+      <div class="stack" style="gap:4px">
+        <span class="eyebrow">Ranking presidencial</span>
+        <h2>¿Quién sería mejor presidente?</h2>
+      </div>
+      <div class="analysis small" id="pres-intro"></div>
+      <div id="pres-me"></div>
+      <div class="stack" style="gap:6px" id="pres-list"></div>
+      <div id="pres-far"></div>
+      <details class="small">
+        <summary style="cursor:pointer;font-weight:600">Ver el perfil ideal, afirmación por afirmación</summary>
+        <div class="stack" style="gap:6px;margin-top:10px" id="pres-ideal"></div>
+      </details>
+    </section>
   </section>
 
   <!-- GRUPO (visible en resultados) -->
@@ -773,6 +788,7 @@ function renderGroup() {
 
   renderStrips(list, viewing && viewing.docId);
   renderCompareOptions(list, viewing);
+  renderPresident();
 }
 
 // Una línea por eje con todos los del grupo; las etiquetas se apilan para no pisarse.
@@ -915,6 +931,17 @@ function drawChart(container, entries, highlightId, showParties, showNames) {
     });
   }
 
+  // perfil presidencial ideal (lo que piensa la mayoría de España)
+  {
+    const ix = X(IDEAL_SC.e), iy = Y(IDEAL_SC.s), r = 9, pts5 = [];
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; pts5.push((ix + rr * Math.cos(a)).toFixed(1) + "," + (iy + rr * Math.sin(a)).toFixed(1)); }
+    const g = sv("g", {});
+    g.append(sv("title", {}, "Perfil presidencial ideal: lo que piensa la mayoría de España"));
+    g.append(sv("polygon", { points: pts5.join(" "), fill: "var(--mark)", stroke: "var(--ink)", "stroke-width": 1.5 }));
+    g.append(sv("text", { x: ix, y: iy + 21, "text-anchor": "middle", "font-size": 10, "font-weight": 700, fill: "var(--ink)", stroke: "var(--bg)", "stroke-width": 3, "paint-order": "stroke" }, "ideal"));
+    svg.append(g);
+  }
+
   const pts = entries.map(x => ({ x, sc: computeScores(x.answers) }));
   if (pts.length > 1) {
     const ae = pts.reduce((s, o) => s + o.sc.e, 0) / pts.length, as = pts.reduce((s, o) => s + o.sc.s, 0) / pts.length;
@@ -967,6 +994,102 @@ function connect() {
 function refreshGroupViews() {
   if (state.screen === "intro") renderIntroGroup();
   if (state.screen === "result") { renderGroupText(); renderGroup(); }
+}
+
+// ---------- Ranking presidencial ----------
+// Perfil ideal = opinión mayoritaria de los españoles en cada afirmación (escala 1-10),
+// estimada a partir de encuestas (CIS, 40dB, Simple Lógica, More in Common, Sigma Dos…).
+// Con un Congreso fragmentado, gobernar exige representar a la mayoría y poder pactar:
+// el mejor presidente es quien más coincide con el país, no quien es más de un bando.
+// Vivienda e inmigración, los dos primeros problemas en el CIS de 2026, pesan más.
+const IDEAL = [
+  { v: 7,   w: 2,   why: "Limitar alquileres tiene apoyo mayoritario y la vivienda es el primer problema (≈45% en el CIS)." },
+  { v: 5.5, w: 1.5, why: "País dividido: se ve la inmigración como necesaria pero preocupa cada vez más." },
+  { v: 5,   w: 1,   why: "Opinión dividida sobre bajar impuestos." },
+  { v: 5.5, w: 1,   why: "Valor de la familia alto, sin apoyo claro a privilegiar un solo modelo." },
+  { v: 3.5, w: 1,   why: "En el conjunto de España, mayoría contraria a un referéndum de independencia." },
+  { v: 8,   w: 1,   why: "Amplio apoyo a que las grandes fortunas paguen más." },
+  { v: 7,   w: 1,   why: "Mayoría a favor del aborto en la sanidad pública." },
+  { v: 4,   w: 1,   why: "Mayoría desconfía de que el mercado reparta solo la riqueza." },
+  { v: 5.5, w: 1,   why: "Preocupa la seguridad, pero sin apoyo mayoritario a recortar libertades." },
+  { v: 6.5, w: 1,   why: "Buena imagen de lo público en energía y tren." },
+  { v: 7.5, w: 1,   why: "El 72% apoya la eutanasia (CIS)." },
+  { v: 3.5, w: 1,   why: "Mayoría prefiere sanidad y educación de gestión pública." },
+  { v: 4.5, w: 1,   why: "Minoría amplia cree que las leyes de igualdad han ido lejos, sobre todo entre hombres jóvenes." },
+  { v: 5,   w: 1,   why: "División entre mantener el Estado autonómico y recentralizar." },
+  { v: 7,   w: 1,   why: "Subir el salario mínimo cuenta con apoyo mayoritario." },
+  { v: 5.5, w: 1,   why: "División, con ligera mayoría a favor de regular el cannabis." },
+  { v: 5.5, w: 1,   why: "Opinión dividida sobre si las ayudas desincentivan trabajar." },
+  { v: 4.5, w: 1,   why: "Los toros dividen, con más rechazo en el norte y más apoyo en el sur." },
+  { v: 6,   w: 1,   why: "Ligera mayoría a favor de una renta básica." },
+  { v: 4,   w: 1,   why: "La autodeterminación de género sin requisitos tiene apoyo minoritario." },
+  { v: 4,   w: 1,   why: "En el conjunto de España, minoría a favor de la plurinacionalidad." },
+  { v: 3,   w: 1,   why: "Amplio rechazo a abaratar el despido." },
+  { v: 6.5, w: 1.5, why: "Mayoría a favor de más control migratorio (p. ej. 83% deportar a irregulares que delinquen, More in Common)." },
+  { v: 8,   w: 1,   why: "Entre el 66% y el 80% apoya reducir la jornada sin bajar el sueldo." },
+  { v: 6.5, w: 1,   why: "Mayoría preocupada por el clima, con reservas ante los costes." },
+  { v: 6.5, w: 1,   why: "El impuesto de sucesiones es impopular incluso entre votantes de izquierda." },
+  { v: 5.5, w: 1,   why: "País partido entre monarquía y república." },
+  { v: 6.5, w: 1,   why: "En el conjunto de España, mayoría a favor del castellano como lengua vehicular." },
+  { v: 6,   w: 1,   why: "Ligera mayoría por una escuela pública laica." },
+  { v: 5.5, w: 1,   why: "Opinión dividida sobre el poder de los sindicatos." }
+];
+const IDEAL_SC = computeScores(IDEAL.map(x => x.v));
+function presScore(answers) {
+  let sum = 0, wsum = 0;
+  IDEAL.forEach((it, i) => { const a = clampAns(answers[i]); if (a == null) return; sum += it.w * Math.abs(a - it.v); wsum += it.w; });
+  return wsum ? Math.round(100 - (sum / wsum) / 5 * 100) : 0; // 5 puntos de desviación media ≈ 0/100
+}
+function presRanking(list) {
+  return list.map(x => ({ x, score: Math.max(0, Math.min(100, presScore(x.answers))) })).sort((a, b) => b.score - a.score);
+}
+
+function renderPresident() {
+  const viewing = state.viewing;
+  if (!viewing || !$("pres-card")) return;
+  const list = groupWith(viewing);
+  const ranking = presRanking(list);
+  const n = ranking.length;
+  const isMe = state.mine && viewing.docId === state.mine.docId;
+  const idealIdeo = ideologyOf(IDEAL_SC);
+
+  $("pres-intro").replaceChildren(
+    el("p", null, "España, 2026: la vivienda es el primer problema del país (cerca de la mitad la cita en el CIS), seguida de la inmigración y la economía, y el Congreso está tan fragmentado que nadie gobierna sin pactos."),
+    el("p", null, `Por eso el presidente ideal no se mide por ser de izquierdas o de derechas, sino por coincidir con lo que piensa la mayoría de los españoles tema a tema, según las encuestas. Ese perfil sale «${idealIdeo.label}» y es la estrella del mapa del grupo. Vivienda e inmigración pesan más.`)
+  );
+
+  const pos = ranking.findIndex(r => r.x.docId === viewing.docId);
+  const mine = ranking[pos];
+  const who = isMe ? "Tu" : "La";
+  const tag = n < 2 ? "" : pos === 0 ? " 🥇 Mejor presidente del grupo" : pos === n - 1 && n >= 3 ? " 👎 Peor presidente del grupo" : "";
+  $("pres-me").replaceChildren(el("div", { class: "row", style: "align-items:baseline;gap:12px" },
+    el("span", { class: "num", style: "font-size:2.2rem;font-family:var(--font-display);font-weight:800" }, mine.score + "/100"),
+    el("span", null, `${who} aptitud presidencial${isMe ? "" : " de " + viewing.name}. Puesto ${pos + 1} de ${n}.${tag}`)));
+
+  const medal = i => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : String(i + 1);
+  const worstFrom = n >= 4 ? n - 2 : n >= 3 ? n - 1 : n;
+  $("pres-list").replaceChildren(...ranking.map((r, i) => {
+    const hl = r.x.docId === viewing.docId;
+    const worst = i >= worstFrom;
+    const row = el("div", { class: "pbar", style: `grid-template-columns:2rem 1fr 3rem;${hl ? "font-weight:700" : ""}` },
+      el("span", { class: "num", style: "text-align:center" }, medal(i)),
+      el("span", { class: "stack", style: "gap:3px;min-width:0" },
+        el("button", { class: "who", type: "button", style: "background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit;font:inherit", onclick: () => { state.viewing = r.x; show("result"); } },
+          r.x.name + (state.mine && r.x.docId === state.mine.docId ? " (tú)" : "") + (worst && n >= 3 ? " · peores" : i < 3 && n >= 4 ? " · mejores" : "")),
+        el("span", { class: "track" }, el("i", { style: `width:${r.score}%;background:${worst && n >= 3 ? "var(--left)" : i === 0 ? "var(--ok)" : "var(--accent)"}` }))),
+      el("span", { class: "pct num" }, String(r.score)));
+    return row;
+  }));
+
+  const diffs = IDEAL.map((it, i) => ({ it, q: QUESTIONS[i], a: clampAns(viewing.answers[i]) }))
+    .filter(d => d.a != null).sort((p, q) => q.it.w * Math.abs(q.a - q.it.v) - p.it.w * Math.abs(p.a - p.it.v)).slice(0, 2);
+  $("pres-far").replaceChildren(...(diffs.length ? [el("p", { class: "small" }, el("b", null, isMe ? "Dónde más te alejas de la mayoría: " : `Dónde más se aleja ${viewing.name} de la mayoría: `)),
+    ...diffs.map(d => el("div", { class: "notice", style: "gap:4px" }, el("span", null, d.q.text),
+      el("span", { class: "small" }, el("b", null, (isMe ? "Tú" : viewing.name) + ": "), el("span", { class: "num" }, d.a + "/10"), "  ·  ", el("b", null, "Mayoría: "), el("span", { class: "num" }, String(d.it.v).replace(".", ",") + "/10")),
+      el("span", { class: "small muted" }, d.it.why)))] : []));
+
+  $("pres-ideal").replaceChildren(...QUESTIONS.map((q, i) => el("div", { class: "small", style: "border-top:1px solid var(--line);padding-top:6px" },
+    el("b", { class: "num" }, String(IDEAL[i].v).replace(".", ",") + "/10 "), q.text, el("br"), el("span", { class: "muted" }, IDEAL[i].why))));
 }
 
 // ---------- Nombres repetidos ----------
