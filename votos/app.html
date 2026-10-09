@@ -1201,10 +1201,15 @@ function renderAwards(list) {
 const guess = { round: null, score: 0, total: 0, picked: null };
 function newGuessRound(list) {
   const others = list.filter(x => !(state.mine && x.docId === state.mine.docId));
+  // Solo respuestas únicas: nadie más del grupo (tú incluido) puso esa misma nota en esa afirmación.
+  const unique = (x, i, a) => !list.some(y => y.docId !== x.docId && clampAns(y.answers[i]) === a);
   const cands = [];
-  others.forEach(x => x.answers.forEach((a, i) => { a = clampAns(a); if (a != null && (a <= 2 || a >= 9)) cands.push({ x, i, a }); }));
-  if (!cands.length) others.forEach(x => x.answers.forEach((a, i) => { a = clampAns(a); if (a != null) cands.push({ x, i, a }); }));
-  guess.round = cands.length ? cands[Math.floor(Math.random() * cands.length)] : null;
+  others.forEach(x => x.answers.forEach((a, i) => { a = clampAns(a); if (a != null && (a <= 2 || a >= 9) && unique(x, i, a)) cands.push({ x, i, a }); }));
+  if (!cands.length) others.forEach(x => x.answers.forEach((a, i) => { a = clampAns(a); if (a != null && unique(x, i, a)) cands.push({ x, i, a }); }));
+  // evita repetir la misma pregunta dos veces seguidas
+  const fresh = guess.round ? cands.filter(c => !(c.x.docId === guess.round.x.docId && c.i === guess.round.i)) : cands;
+  const pool = fresh.length ? fresh : cands;
+  guess.round = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
   guess.picked = null;
 }
 function renderGuess(list) {
@@ -1213,7 +1218,7 @@ function renderGuess(list) {
   if (others.length < 2) { box.replaceChildren(el("div", { class: "empty" }, "Hace falta que al menos 2 personas más hagan el test para jugar.")); return; }
   if (!guess.round || !list.some(x => x.docId === guess.round.x.docId)) newGuessRound(list);
   const r = guess.round;
-  if (!r) return;
+  if (!r) { box.replaceChildren(el("div", { class: "empty" }, "No hay ninguna respuesta que sea solo de una persona. Vuelve cuando haya respondido más gente.")); return; }
   const q = QUESTIONS[r.i];
   const kids = [
     el("div", { class: "notice", style: "gap:8px" },
