@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿A quién votarías?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: una columna estrecha tipo papeleta; cada afirmación es una "casilla" de voto del 1 al 10 marcada con una X. */
+:root {
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --ink: #141a2e;
+  --muted: #5a6379;
+  --line: #d6dce7;
+  --accent: #2448d8;
+  --accent-ink: #ffffff;
+  --mark: #ffcf3a;
+  --left: #d23b3b;
+  --right: #2a6fd6;
+  --prog: #7a3fc4;
+  --cons: #8a5a1f;
+  --q1: rgba(210, 59, 59, .07);
+  --q2: rgba(42, 111, 214, .07);
+  --q3: rgba(122, 63, 196, .07);
+  --q4: rgba(138, 90, 31, .08);
+  --ok: #1d7a46;
+  --warn: #9a5b00;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1220; --surface: #171c2f; --ink: #e9ecf5; --muted: #9aa3ba; --line: #2b3350;
+    --accent: #6f8cff; --accent-ink: #0e1220; --mark: #ffd65c;
+    --left: #ff6b6b; --right: #5b9bff; --prog: #b48cff; --cons: #d4a15f;
+    --q1: rgba(255, 107, 107, .08); --q2: rgba(91, 155, 255, .08); --q3: rgba(180, 140, 255, .08); --q4: rgba(212, 161, 95, .09);
+    --ok: #4cc685; --warn: #f0b04c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1220; --surface: #171c2f; --ink: #e9ecf5; --muted: #9aa3ba; --line: #2b3350;
+  --accent: #6f8cff; --accent-ink: #0e1220; --mark: #ffd65c;
+  --left: #ff6b6b; --right: #5b9bff; --prog: #b48cff; --cons: #d4a15f;
+  --q1: rgba(255, 107, 107, .08); --q2: rgba(91, 155, 255, .08); --q3: rgba(180, 140, 255, .08); --q4: rgba(212, 161, 95, .09);
+  --ok: #4cc685; --warn: #f0b04c;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h1 { font-size: clamp(2.1rem, 7vw, 3.3rem); font-weight: 800; }
+h2 { font-size: 1.5rem; font-weight: 700; }
+h3 { font-size: 1.1rem; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.stack { display: grid; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; display: grid; gap: 16px; min-width: 0; }
+
+button, input, textarea { font: inherit; color: inherit; }
+.btn { appearance: none; border: 1px solid var(--line); background: var(--surface); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); padding-inline: 8px; }
+.btn.ghost:hover { color: var(--ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+input[type="text"], textarea { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+textarea { min-height: 70px; font-family: var(--font-mono); font-size: .85rem; }
+label { font-weight: 600; font-size: .9rem; }
+
+/* Portada */
+.hero { display: grid; gap: 14px; }
+.hero .lede { font-size: 1.1rem; max-width: 58ch; }
+.scale-demo { display: flex; gap: 4px; }
+.scale-demo span { width: 22px; height: 22px; border: 1.5px solid var(--ink); border-radius: 3px; display: grid; place-items: center; font-size: .7rem; font-family: var(--font-mono); }
+.scale-demo span.x { background: var(--mark); color: #141a2e; border-color: #141a2e; }
+
+/* Papeleta */
+.ballot { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; display: grid; gap: 22px; }
+.progress { display: grid; gap: 6px; }
+.progress-bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress-bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s ease; }
+.qhead { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.axis-tag { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+.statement { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.35rem, 4.6vw, 1.85rem); line-height: 1.2; min-height: 4.6em; text-wrap: balance; }
+.boxes { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+.box { appearance: none; aspect-ratio: 1; max-width: 100%; border: 2px solid var(--ink); border-radius: 4px; background: var(--surface); cursor: pointer; position: relative; padding: 0; display: grid; place-items: center; font-family: var(--font-mono); font-size: .85rem; color: var(--muted); }
+.box:hover { background: var(--bg); color: var(--ink); }
+.box svg { position: absolute; inset: 10%; width: 80%; height: 80%; display: none; }
+.box svg path { stroke: #141a2e; stroke-width: 3.2; stroke-linecap: round; fill: none; stroke-dasharray: 30; stroke-dashoffset: 0; animation: draw .22s ease-out; }
+.box.on { background: var(--mark); border-color: #141a2e; color: transparent; }
+.box.on svg { display: block; }
+@keyframes draw { from { stroke-dashoffset: 30; } to { stroke-dashoffset: 0; } }
+.scale-ends { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); gap: 12px; }
+.qnav { display: flex; justify-content: space-between; gap: 8px; flex-wrap: nowrap; }
+.qnav .row { flex-wrap: nowrap; gap: 6px; }
+
+/* Resultados */
+.result-hero { display: grid; gap: 10px; }
+.ideology { font-size: clamp(2rem, 7vw, 3rem); font-weight: 800; }
+.vote-line { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 1.05rem; }
+.party-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 99px; border: 1.5px solid var(--ink); font-weight: 700; }
+.party-chip i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.axes { display: grid; gap: 16px; }
+.axis { display: grid; gap: 6px; }
+.axis-ends { display: flex; justify-content: space-between; font-size: .8rem; font-weight: 600; }
+.axis-track { position: relative; height: 12px; border-radius: 6px; }
+.axis-track::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); }
+.axis-dot { position: absolute; top: 50%; width: 22px; height: 22px; border-radius: 50%; background: var(--mark); border: 3px solid var(--ink); transform: translate(-50%, -50%); }
+.axis-val { font-size: .8rem; color: var(--muted); text-align: center; }
+.analysis { display: grid; gap: 12px; max-width: 65ch; }
+.parties { display: grid; gap: 7px; }
+.pbar { display: grid; grid-template-columns: 7.5rem 1fr 3rem; gap: 10px; align-items: center; font-size: .9rem; }
+.pbar .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pbar .track { height: 10px; background: var(--bg); border-radius: 5px; overflow: hidden; }
+.pbar .track i { display: block; height: 100%; border-radius: 5px; }
+.pbar .pct { text-align: right; }
+.notice { border-radius: 8px; padding: 12px 14px; font-size: .92rem; border: 1px solid var(--line); background: var(--bg); display: grid; gap: 8px; }
+.notice.ok { border-color: var(--ok); }
+.notice.warn { border-color: var(--warn); }
+.code-box { font-family: var(--font-mono); font-size: .8rem; word-break: break-all; background: var(--surface); border: 1px dashed var(--line); padding: 8px 10px; border-radius: 6px; user-select: all; }
+
+/* Grupo */
+.chart-wrap { width: 100%; max-width: 560px; margin: 0 auto; }
+.chart-wrap svg { width: 100%; height: auto; display: block; }
+.chart-wrap text { font-family: var(--font-body); }
+.toggles { display: flex; gap: 14px; flex-wrap: wrap; font-size: .88rem; }
+.toggles label { font-weight: 500; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.list { display: grid; gap: 0; }
+.member { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); min-width: 0; }
+.member:first-child { border-top: 0; }
+.member .who { min-width: 0; display: grid; gap: 2px; cursor: pointer; background: none; border: 0; text-align: left; padding: 0; }
+.member .who:hover b { text-decoration: underline; }
+.member .who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member .meta { font-size: .82rem; color: var(--muted); }
+.member .acts { display: flex; gap: 6px; align-items: center; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 6px; }
+.dist { display: grid; gap: 6px; }
+.empty { text-align: center; padding: 18px; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+.foot { font-size: .8rem; color: var(--muted); max-width: 65ch; }
+
+@media (max-width: 480px) {
+  .card, .ballot { padding: 16px; }
+  .boxes { gap: 4px; }
+  .box { font-size: .72rem; border-width: 1.5px; }
+  .pbar { grid-template-columns: 5.6rem 1fr 2.6rem; }
+  .qnav .btn { padding: 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .box svg path { animation: none; }
+  .progress-bar i { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- PORTADA -->
+  <section id="screen-intro" class="stack" style="gap:28px">
+    <header class="hero">
+      <span class="eyebrow">Test político · 30 afirmaciones · 5 minutos</span>
+      <h1>¿A quién votarías?</h1>
+      <p class="lede">Puntúa cada afirmación del 1 al 10 según lo de acuerdo que estés. Al final verás tu ideología, el partido que más se parece a lo que piensas, un análisis de tu forma de pensar y dónde quedas frente al resto del grupo.</p>
+      <div class="row small muted" aria-hidden="true">
+        <div class="scale-demo"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span class="x">✕</span><span>8</span><span>9</span><span>10</span></div>
+        <span>1 = nada de acuerdo · 10 = totalmente de acuerdo</span>
+      </div>
+    </header>
+
+    <form id="start-form" class="card" novalidate>
+      <div class="stack" style="gap:8px">
+        <label for="name-input">Tu nombre</label>
+        <input id="name-input" type="text" maxlength="30" autocomplete="given-name" placeholder="Como te conoce el grupo">
+        <p id="name-err" class="small" style="color:var(--left)" hidden>Escribe tu nombre para que el grupo sepa quién eres.</p>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="submit" id="start-btn">Empezar el test</button>
+        <button class="btn" type="button" id="resume-btn" hidden>Seguir donde lo dejé</button>
+        <button class="btn" type="button" id="mine-btn" hidden>Ver mis resultados</button>
+      </div>
+    </form>
+
+    <section class="card" id="intro-group">
+      <div class="stack" style="gap:4px">
+        <h2>El mapa del grupo</h2>
+        <p class="muted small" id="intro-group-sub">Cargando resultados…</p>
+      </div>
+      <div class="chart-wrap" id="intro-chart"></div>
+    </section>
+  </section>
+
+  <!-- PAPELETA -->
+  <section id="screen-quiz" hidden>
+    <div class="ballot">
+      <div class="progress">
+        <div class="qhead">
+          <span class="num small" id="q-count">1 / 30</span>
+          <span class="axis-tag" id="q-axis">Economía</span>
+        </div>
+        <div class="progress-bar"><i id="q-bar"></i></div>
+      </div>
+      <p class="statement" id="q-text"></p>
+      <div class="stack" style="gap:8px">
+        <div class="boxes" id="q-boxes" role="radiogroup" aria-label="Nivel de acuerdo del 1 al 10"></div>
+        <div class="scale-ends"><span>1 · Nada de acuerdo</span><span>Totalmente de acuerdo · 10</span></div>
+      </div>
+      <div class="qnav">
+        <button class="btn" type="button" id="q-prev">← Anterior</button>
+        <div class="row">
+          <button class="btn ghost" type="button" id="q-skip" title="Saltar esta afirmación">No sé</button>
+          <button class="btn primary" type="button" id="q-next">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+    <p class="small muted" style="margin-top:12px">Atajo: teclas 1–9 y 0 (=10) para marcar, ← → para moverte.</p>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section id="screen-result" class="stack" style="gap:20px" hidden>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn ghost" type="button" id="back-intro">← Inicio</button>
+      <button class="btn ghost" type="button" id="back-mine" hidden>Volver a mis resultados</button>
+    </div>
+
+    <div id="save-status"></div>
+
+    <section class="card result-hero">
+      <span class="eyebrow" id="r-eyebrow">Resultados</span>
+      <h1 class="ideology" id="r-ideology"></h1>
+      <div class="vote-line"><span class="muted">Votarías a</span><span class="party-chip" id="r-party"></span><span class="muted num" id="r-aff"></span></div>
+      <p class="muted small" id="r-party-desc"></p>
+    </section>
+
+    <section class="card">
+      <h2>Dónde te sitúas</h2>
+      <div class="axes" id="r-axes"></div>
+    </section>
+
+    <section class="card">
+      <h2>Tu forma de pensar</h2>
+      <div class="analysis" id="r-analysis"></div>
+    </section>
+
+    <section class="card">
+      <div class="stack" style="gap:4px">
+        <h2>Afinidad con cada partido</h2>
+        <p class="muted small">Cercanía entre tus respuestas y la posición de cada partido en economía, sociedad y modelo territorial.</p>
+      </div>
+      <div class="parties" id="r-parties"></div>
+    </section>
+
+    <section class="card">
+      <h2>Comparado con el grupo</h2>
+      <div class="analysis" id="r-group-text"></div>
+    </section>
+  </section>
+
+  <!-- GRUPO (visible en resultados) -->
+  <section id="group-section" class="card" hidden>
+    <div class="stack" style="gap:4px">
+      <h2>Mapa del grupo</h2>
+      <p class="muted small" id="group-sub"></p>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="show-parties" checked> Mostrar partidos</label>
+      <label><input type="checkbox" id="show-names" checked> Mostrar nombres</label>
+    </div>
+    <div class="chart-wrap" id="group-chart"></div>
+    <div class="stack" style="gap:8px">
+      <h3>Cada persona en cada eje</h3>
+      <div id="group-strips" class="stack" style="gap:14px"></div>
+    </div>
+    <div class="stack" style="gap:10px" id="compare-block">
+      <h3>Comparar con alguien</h3>
+      <div class="row">
+        <label for="compare-select" class="small">Comparar a <b id="compare-who"></b> con</label>
+        <select id="compare-select" class="btn" style="font-weight:500"></select>
+      </div>
+      <div id="compare-out" class="stack" style="gap:10px"></div>
+    </div>
+    <div class="stack" style="gap:8px">
+      <h3>¿Qué votaría el grupo?</h3>
+      <div class="dist" id="group-dist"></div>
+    </div>
+    <div class="stack" style="gap:8px">
+      <h3>Participantes</h3>
+      <p class="small muted">Toca un nombre para ver su análisis.</p>
+      <div class="list" id="group-list"></div>
+    </div>
+  </section>
+
+  <p class="foot">Las posiciones de los partidos son aproximadas, estimadas a partir de sus programas y de estudios comparados de expertos sobre partidos europeos (como la encuesta Chapel Hill). Es un test orientativo para pasarlo bien y discutir, no un consejo de voto.</p>
+</div>
+
+<script>
+(function () {
+"use strict";
+
+// ---------- Contenido ----------
+// axis: E = economía (+ capitalista), S = sociedad (+ conservador), T = territorio (+ centralista)
+// dir: +1 si estar de acuerdo empuja hacia el polo positivo del eje.
+// topic: frase para el análisis ("muy a favor de …").
+const QUESTIONS = [
+  { axis: "E", dir: -1, text: "El Estado debería garantizar vivienda asequible aunque eso suponga limitar el precio de los alquileres.", topic: "limitar el precio de los alquileres" },
+  { axis: "S", dir: -1, text: "La inmigración enriquece culturalmente a España.", topic: "ver la inmigración como algo que enriquece al país" },
+  { axis: "E", dir: +1, text: "Bajar impuestos es la mejor forma de que la economía crezca y se cree empleo.", topic: "bajar impuestos para impulsar la economía" },
+  { axis: "S", dir: +1, text: "La familia tradicional es la base de la sociedad y el Estado debe protegerla especialmente.", topic: "proteger especialmente a la familia tradicional" },
+  { axis: "T", dir: -1, text: "Cataluña o el País Vasco deberían poder votar en un referéndum si quieren independizarse.", topic: "un referéndum de independencia en Cataluña o Euskadi" },
+  { axis: "E", dir: -1, text: "Las grandes fortunas deberían pagar bastantes más impuestos que ahora.", topic: "que las grandes fortunas paguen más impuestos" },
+  { axis: "S", dir: -1, text: "El aborto debe ser un derecho libre y gratuito en la sanidad pública.", topic: "el aborto libre y gratuito" },
+  { axis: "E", dir: +1, text: "El libre mercado reparte la riqueza mejor que cualquier gobierno.", topic: "dejar que el mercado reparta la riqueza" },
+  { axis: "S", dir: +1, text: "Hace falta más mano dura contra la delincuencia, aunque se recorten algunas libertades.", topic: "la mano dura contra la delincuencia" },
+  { axis: "E", dir: -1, text: "Sectores clave como la energía o el ferrocarril deberían estar en manos públicas.", topic: "que la energía y el tren sean públicos" },
+  { axis: "S", dir: -1, text: "La eutanasia es un derecho que debe estar garantizado.", topic: "la eutanasia como derecho" },
+  { axis: "E", dir: +1, text: "La sanidad y la educación funcionarían mejor con más gestión privada.", topic: "más gestión privada en sanidad y educación" },
+  { axis: "S", dir: +1, text: "Las leyes de igualdad de género han ido demasiado lejos.", topic: "la idea de que las leyes de igualdad han ido demasiado lejos" },
+  { axis: "T", dir: +1, text: "Las comunidades autónomas tienen demasiadas competencias; el Estado debería recuperar algunas.", topic: "recentralizar competencias de las autonomías" },
+  { axis: "E", dir: -1, text: "Hay que seguir subiendo el salario mínimo, aunque algunas pequeñas empresas lo pasen mal.", topic: "seguir subiendo el salario mínimo" },
+  { axis: "S", dir: -1, text: "El cannabis debería ser legal y estar regulado, como el alcohol.", topic: "legalizar el cannabis" },
+  { axis: "E", dir: +1, text: "Las ayudas sociales desincentivan que la gente busque trabajo.", topic: "la idea de que las ayudas desincentivan trabajar" },
+  { axis: "S", dir: +1, text: "La tauromaquia es cultura y hay que protegerla.", topic: "proteger los toros como cultura" },
+  { axis: "E", dir: -1, text: "Una renta básica universal para todo el mundo sería una buena idea.", topic: "una renta básica universal" },
+  { axis: "S", dir: -1, text: "Las personas trans deberían poder cambiar el sexo en su DNI sin requisitos médicos.", topic: "la autodeterminación de género en el DNI" },
+  { axis: "T", dir: -1, text: "España es una nación de naciones, y eso debería reconocerse en la Constitución.", topic: "reconocer España como nación de naciones" },
+  { axis: "E", dir: +1, text: "Hay que facilitar el despido para que las empresas se atrevan a contratar más.", topic: "abaratar el despido" },
+  { axis: "S", dir: +1, text: "Habría que endurecer mucho el control de la inmigración, aunque frene la llegada de mano de obra.", topic: "endurecer el control de la inmigración" },
+  { axis: "E", dir: -1, text: "Reducir la jornada laboral por ley, sin bajar el sueldo, es una buena medida.", topic: "reducir la jornada laboral sin bajar sueldos" },
+  { axis: "S", dir: -1, text: "Luchar contra el cambio climático debe ser prioritario aunque suponga sacrificios económicos.", topic: "priorizar la lucha climática aunque cueste" },
+  { axis: "E", dir: +1, text: "Heredar una casa o un negocio familiar no debería pagar impuestos.", topic: "eliminar el impuesto de sucesiones" },
+  { axis: "S", dir: +1, text: "La monarquía es útil para España y debe mantenerse.", topic: "mantener la monarquía" },
+  { axis: "T", dir: +1, text: "El castellano debe ser lengua vehicular en todas las escuelas de España.", topic: "el castellano como lengua vehicular en todas las escuelas" },
+  { axis: "S", dir: -1, text: "La asignatura de Religión no debería impartirse en los colegios públicos.", topic: "sacar la Religión de la escuela pública" },
+  { axis: "E", dir: +1, text: "Los sindicatos tienen demasiado poder en España.", topic: "la idea de que los sindicatos tienen demasiado poder" }
+];
+const N = QUESTIONS.length;
+const AXIS_NAME = { E: "Economía", S: "Sociedad", T: "Territorio" };
+
+// Posición aproximada: e (−100 socialista … +100 capitalista), s (−100 progresista … +100 conservador), t (−100 plurinacional … +100 centralista)
+const PARTIES = [
+  { id: "podemos", name: "Podemos", short: "POD", color: "#6b2e85", e: -80, s: -80, t: -45, desc: "Izquierda transformadora: lo público por delante, feminismo y republicanismo." },
+  { id: "sumar", name: "Sumar", short: "SUM", color: "#e0157e", e: -65, s: -70, t: -35, desc: "Izquierda verde y feminista: más derechos laborales y transición ecológica." },
+  { id: "psoe", name: "PSOE", short: "PSOE", color: "#e30613", e: -25, s: -45, t: -10, desc: "Socialdemocracia: Estado del bienestar, reformas graduales y derechos civiles." },
+  { id: "pp", name: "PP", short: "PP", color: "#1d84ce", e: 40, s: 30, t: 45, desc: "Centroderecha: menos impuestos, gestión económica y unidad de España." },
+  { id: "vox", name: "Vox", short: "VOX", color: "#5fb82a", e: 40, s: 85, t: 90, desc: "Derecha nacional-conservadora: inmigración, identidad nacional y recentralización." },
+  { id: "salf", name: "Se Acabó La Fiesta", short: "SALF", color: "#7a6a58", e: 60, s: 60, t: 60, desc: "Populismo de derechas antisistema: mano dura y menos Estado." },
+  { id: "erc", name: "ERC", short: "ERC", color: "#f0a600", e: -40, s: -55, t: -85, desc: "Izquierda independentista catalana (ámbito autonómico)." },
+  { id: "junts", name: "Junts", short: "JxC", color: "#1fb5a9", e: 25, s: -5, t: -90, desc: "Independentismo catalán de centroderecha (ámbito autonómico)." },
+  { id: "pnv", name: "PNV", short: "PNV", color: "#2e8540", e: 15, s: -10, t: -70, desc: "Nacionalismo vasco moderado y democristiano (ámbito autonómico)." },
+  { id: "bildu", name: "EH Bildu", short: "BILDU", color: "#9ab800", e: -65, s: -60, t: -95, desc: "Izquierda independentista vasca (ámbito autonómico)." },
+  { id: "bng", name: "BNG", short: "BNG", color: "#5aa5d9", e: -60, s: -55, t: -85, desc: "Izquierda nacionalista gallega (ámbito autonómico)." }
+];
+const PARTY_BY_ID = Object.fromEntries(PARTIES.map(p => [p.id, p]));
+
+const IDEOLOGIES = {
+  "-1,-1": { label: "Izquierda progresista", text: "Combinas una apuesta fuerte por lo público y por repartir mejor la riqueza con una visión abierta en lo social: derechos civiles, feminismo, ecologismo y diversidad. Para ti el Estado debe corregir las desigualdades que genera el mercado, y la sociedad avanza cuando amplía libertades personales." },
+  "-1,0": { label: "Izquierda social", text: "Tu prioridad es económica: salarios, vivienda, servicios públicos y un reparto más justo. En los debates culturales tienes posturas más templadas o mezcladas; no son el centro de tu manera de ver la política." },
+  "-1,1": { label: "Izquierda tradicional", text: "Defiendes un Estado fuerte que proteja a los trabajadores y reparta la riqueza, pero en lo cultural te sientes cerca de valores clásicos como el orden, la tradición o el control de la inmigración. Es un perfil frecuente entre votantes obreros de toda la vida y que pocos partidos representan bien." },
+  "0,-1": { label: "Progresismo moderado", text: "En economía buscas un equilibrio entre mercado y Estado del bienestar, y en lo social te sitúas claramente en el lado progresista. Prefieres reformas graduales: ampliar derechos sin romper el modelo económico." },
+  "0,0": { label: "Centro pragmático", text: "No encajas en ningún bloque: tus respuestas mezclan ideas de izquierda y de derecha según el tema. Valoras el sentido práctico por encima de la ideología, y seguramente decides tu voto según el momento, los candidatos o temas concretos." },
+  "0,1": { label: "Conservadurismo social", text: "Tu economía es mixta: aceptas el Estado del bienestar pero desconfías del exceso de gasto o de intervención. Donde más claro te posicionas es en lo cultural: tradición, familia, orden y una identidad nacional fuerte." },
+  "1,-1": { label: "Liberalismo progresista", text: "Defiendes la libertad en los dos frentes: libertad económica (impuestos bajos, mercado, emprender) y libertad personal (que cada cual viva como quiera). Es el perfil liberal clásico europeo, poco habitual en la política española." },
+  "1,0": { label: "Centroderecha liberal", text: "Crees que la economía funciona mejor con menos impuestos y menos intervención pública, y en lo social tienes posturas moderadas. Te importan la estabilidad, la buena gestión y el crecimiento más que las batallas culturales." },
+  "1,1": { label: "Derecha conservadora", text: "Combinas la economía de mercado con valores tradicionales: orden, familia, unidad nacional y control de la inmigración. El Estado, para ti, debe ser pequeño en lo económico pero firme en seguridad e identidad." }
+};
+
+// ---------- Cálculo ----------
+function clampAns(v) { return (typeof v === "number" && v >= 1 && v <= 10) ? Math.round(v) : null; }
+function computeScores(answers) {
+  const acc = { E: [0, 0], S: [0, 0], T: [0, 0] };
+  QUESTIONS.forEach((q, i) => {
+    const a = clampAns(answers[i]);
+    if (a == null) return;
+    acc[q.axis][0] += ((a - 5.5) / 4.5) * q.dir;
+    acc[q.axis][1] += 1;
+  });
+  const f = k => acc[k][1] ? Math.round(acc[k][0] / acc[k][1] * 100) : 0;
+  return { e: f("E"), s: f("S"), t: f("T") };
+}
+function affinities(sc) {
+  return PARTIES.map(p => {
+    const d = Math.sqrt((sc.e - p.e) ** 2 + (sc.s - p.s) ** 2 + (0.6 * (sc.t - p.t)) ** 2);
+    return { party: p, aff: Math.max(0, Math.min(100, Math.round(100 - d * 0.45))) };
+  }).sort((a, b) => b.aff - a.aff);
+}
+function bucket(v) { return v <= -25 ? -1 : v >= 25 ? 1 : 0; }
+function ideologyOf(sc) {
+  if (sc.e <= -60 && sc.s <= -50) return { label: "Izquierda radical", text: "Tus posiciones están en el extremo izquierdo en los dos ejes: quieres un cambio profundo del modelo económico, con mucho más peso de lo público, y una sociedad radicalmente abierta en derechos y libertades. No te convencen las medias tintas." };
+  if (sc.e >= 45 && sc.s >= 65) return { label: "Derecha nacional-conservadora", text: "Te sitúas en la derecha más marcada: economía de mercado, pero sobre todo una defensa firme de la identidad nacional, la tradición, el orden y un control estricto de la inmigración. Las batallas culturales son centrales en tu forma de ver la política." };
+  if (sc.e >= 60 && sc.s <= -25) return { label: "Libertarismo", text: "Quieres el mínimo Estado posible en todo: ni impuestos altos ni que el gobierno se meta en tu vida privada. Desconfías del poder público venga de la izquierda o de la derecha." };
+  return IDEOLOGIES[bucket(sc.e) + "," + bucket(sc.s)];
+}
+function intensity(answers) {
+  const xs = answers.map(clampAns).filter(v => v != null);
+  if (!xs.length) return 0;
+  return xs.reduce((s, a) => s + Math.abs(a - 5.5) / 4.5, 0) / xs.length;
+}
+function analyze(answers) {
+  const sc = computeScores(answers);
+  const aff = affinities(sc);
+  return { sc, aff, ideo: ideologyOf(sc), top: aff[0].party, intensity: intensity(answers) };
+}
+
+// ---------- Utilidades ----------
+const $ = id => document.getElementById(id);
+function el(tag, attrs, ...kids) {
+  const n = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v;
+    else if (k === "style") n.setAttribute("style", v);
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) n.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return n;
+}
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, text) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+  if (text != null) n.textContent = text;
+  return n;
+}
+function store(key, val) {
+  try { if (val === undefined) return JSON.parse(localStorage.getItem(key) || "null"); localStorage.setItem(key, JSON.stringify(val)); } catch (e) { return null; }
+}
+function slug(s) { return (s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)) || "x"; }
+function cleanName(s) { return String(s || "").replace(/\s+/g, " ").trim().slice(0, 30); }
+function listJoin(arr) { return arr.length <= 1 ? arr.join("") : arr.slice(0, -1).join(", ") + " y " + arr[arr.length - 1]; }
+function randId() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+
+// ---------- Estado ----------
+const state = {
+  screen: "intro",
+  name: "",
+  answers: new Array(N).fill(null),
+  idx: 0,
+  viewing: null,      // entrada mostrada en resultados
+  mine: null,         // mi última entrada {docId, name, answers}
+  entries: [],        // grupo
+  dbState: "loading", // loading | ready | none
+  saveState: null     // null | saving | saved | failed
+};
+
+function sanitizeEntry(id, d) {
+  if (!d || typeof d !== "object") return null;
+  const name = cleanName(d.name);
+  if (!name || !Array.isArray(d.answers) || d.answers.length !== N) return null;
+  const answers = d.answers.map(clampAns);
+  if (answers.every(a => a == null)) return null;
+  return { docId: id, name, answers, createdAt: typeof d.createdAt === "string" ? d.createdAt : "" };
+}
+
+// ---------- Pantallas ----------
+function show(screen) {
+  state.screen = screen;
+  $("screen-intro").hidden = screen !== "intro";
+  $("screen-quiz").hidden = screen !== "quiz";
+  $("screen-result").hidden = screen !== "result";
+  $("group-section").hidden = screen !== "result";
+  window.scrollTo({ top: 0 });
+  if (screen === "intro") renderIntro();
+  if (screen === "quiz") renderQuestion();
+  if (screen === "result") renderResult();
+}
+
+function renderIntro() {
+  const draft = store("votos.draft");
+  $("resume-btn").hidden = !(draft && Array.isArray(draft.answers) && draft.answers.some(a => a != null));
+  $("mine-btn").hidden = !state.mine;
+  if (!$("name-input").value) $("name-input").value = state.name || (state.mine && state.mine.name) || "";
+  renderIntroGroup();
+}
+
+function renderIntroGroup() {
+  const sub = $("intro-group-sub");
+  const box = $("intro-chart");
+  box.replaceChildren();
+  if (state.dbState === "loading") { sub.textContent = "Cargando resultados…"; drawChart(box, [], null, true, true); return; }
+  if (state.dbState === "none") { sub.textContent = "No se ha podido cargar el mapa del grupo. Puedes hacer el test igualmente y recargar más tarde."; drawChart(box, [], null, true, true); return; }
+  const n = state.entries.length;
+  sub.textContent = n ? `${n} ${n === 1 ? "persona ha" : "personas han"} hecho ya el test. Haz el tuyo para ver dónde caes.` : "Todavía no ha respondido nadie. Haz el test y estrena el mapa.";
+  drawChart(box, state.entries, state.mine && state.mine.docId, true, true);
+}
+
+// ---------- Cuestionario ----------
+function buildBoxes() {
+  const wrap = $("q-boxes");
+  for (let v = 1; v <= 10; v++) {
+    const b = el("button", { class: "box", type: "button", role: "radio", "aria-checked": "false", "aria-label": String(v), "data-v": v, id: "box-" + v }, String(v));
+    const s = sv("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" });
+    s.append(sv("path", { d: "M5 5 L19 19 M19 5 L5 19" }));
+    b.append(s);
+    b.addEventListener("click", () => choose(v));
+    wrap.append(b);
+  }
+}
+function renderQuestion() {
+  const q = QUESTIONS[state.idx];
+  $("q-count").textContent = `${state.idx + 1} / ${N}`;
+  $("q-axis").textContent = AXIS_NAME[q.axis];
+  $("q-text").textContent = q.text;
+  const answered = state.answers.filter(a => a != null).length;
+  $("q-bar").style.width = (answered / N * 100) + "%";
+  const cur = state.answers[state.idx];
+  for (let v = 1; v <= 10; v++) {
+    const b = $("box-" + v);
+    const on = cur === v;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  }
+  $("q-prev").disabled = state.idx === 0;
+  $("q-next").textContent = state.idx === N - 1 ? "Ver resultados" : "Siguiente →";
+}
+let advanceTimer = null;
+function choose(v) {
+  state.answers[state.idx] = v;
+  saveDraft();
+  renderQuestion();
+  clearTimeout(advanceTimer);
+  advanceTimer = setTimeout(next, 260);
+}
+function next() {
+  clearTimeout(advanceTimer);
+  if (state.idx < N - 1) { state.idx++; saveDraft(); renderQuestion(); }
+  else finish();
+}
+function prev() { clearTimeout(advanceTimer); if (state.idx > 0) { state.idx--; saveDraft(); renderQuestion(); } }
+function skip() { state.answers[state.idx] = null; saveDraft(); next(); }
+function saveDraft() { store("votos.draft", { name: state.name, answers: state.answers, idx: state.idx }); }
+
+function finish() {
+  const answered = state.answers.filter(a => a != null).length;
+  if (answered < 10) {
+    $("q-text").textContent = "Necesitas responder al menos 10 afirmaciones para que el resultado tenga sentido. Vuelve atrás y completa algunas más.";
+    return;
+  }
+  const docId = (state.mine && cleanName(state.mine.name).toLowerCase() === state.name.toLowerCase() && state.mine.docId)
+    || ("p-" + anonId() + "-" + slug(state.name));
+  state.mine = { docId, name: state.name, answers: state.answers.slice() };
+  store("votos.mine", state.mine);
+  store("votos.draft", null);
+  state.viewing = state.mine;
+  state.saveState = null;
+  show("result");
+  submit();
+}
+function anonId() {
+  let a = store("votos.anon");
+  if (!a) { a = randId(); store("votos.anon", a); }
+  return a;
+}
+
+// ---------- Guardado ----------
+function hasServer() { return typeof google !== "undefined" && google.script && google.script.run; }
+function callServer(fn, arg) {
+  return new Promise((resolve, reject) => {
+    if (!hasServer()) { reject(new Error("sin servidor")); return; }
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](arg);
+  });
+}
+async function submit() {
+  const mine = state.mine;
+  if (!mine) return;
+  state.saveState = "saving"; renderSaveStatus();
+  const sc = computeScores(mine.answers);
+  const body = { id: mine.docId, name: mine.name, answers: mine.answers, e: sc.e, s: sc.s, t: sc.t };
+  try {
+    const rows = await callServer("saveResult", body);
+    state.saveState = "saved";
+    if (Array.isArray(rows)) onRows(rows);
+  } catch (e) {
+    state.saveState = "failed";
+  }
+  renderSaveStatus();
+}
+
+function renderSaveStatus() {
+  const box = $("save-status");
+  box.replaceChildren();
+  if (!state.mine || state.viewing !== state.mine) return;
+  if (state.saveState === "saving") box.append(el("div", { class: "notice" }, "Guardando tu resultado en el mapa del grupo…"));
+  else if (state.saveState === "saved") box.append(el("div", { class: "notice ok" }, el("b", null, "Enviado. "), "Tu resultado ya aparece en el mapa del grupo."));
+  else if (state.saveState === "failed") box.append(el("div", { class: "notice warn" },
+    el("b", null, "No se ha podido guardar en el grupo."),
+    el("p", null, "Puede ser un fallo de conexión. Tu resultado está a salvo en este navegador; vuelve a intentarlo."),
+    el("div", { class: "row" }, el("button", { class: "btn", type: "button", onclick: submit }, "Reintentar"))));
+}
+
+// ---------- Resultados ----------
+function axisBar(label, left, right, colL, colR, v) {
+  const pct = (v + 100) / 2;
+  const word = Math.abs(v) < 10 ? "Centro" : (v < 0 ? left : right) + " " + Math.abs(v) + "%";
+  return el("div", { class: "axis" },
+    el("div", { class: "axis-ends" }, el("span", { style: `color:${colL}` }, left), el("span", { class: "muted" }, label), el("span", { style: `color:${colR}` }, right)),
+    el("div", { class: "axis-track", style: `background:linear-gradient(90deg, ${colL}, var(--line) 50%, ${colR})` },
+      el("span", { class: "axis-dot", style: `left:${pct}%` })),
+    el("div", { class: "axis-val num" }, word)
+  );
+}
+
+function strongestOpinions(answers) {
+  const items = answers.map((a, i) => ({ a: clampAns(a), q: QUESTIONS[i] }))
+    .filter(x => x.a != null && (x.a >= 9 || x.a <= 2))
+    .sort((x, y) => Math.abs(y.a - 5.5) - Math.abs(x.a - 5.5));
+  return { pro: items.filter(x => x.a >= 9).slice(0, 3).map(x => x.q.topic), con: items.filter(x => x.a <= 2).slice(0, 3).map(x => x.q.topic) };
+}
+
+function territoryText(t) {
+  if (t <= -50) return "En lo territorial defiendes el derecho a decidir y una España plurinacional, con mucho autogobierno para las comunidades.";
+  if (t <= -15) return "En lo territorial te inclinas por un modelo federal o con más autogobierno, sin llegar a posiciones rupturistas.";
+  if (t < 15) return "En lo territorial te quedas en una posición intermedia, cómoda con el Estado autonómico tal como está.";
+  if (t < 50) return "En lo territorial prefieres reforzar el Estado central y la unidad, aunque sin cuestionar del todo las autonomías.";
+  return "En lo territorial defiendes con claridad la unidad de España y un Estado más centralizado.";
+}
+
+function renderResult() {
+  const entry = state.viewing;
+  if (!entry) { show("intro"); return; }
+  const isMine = state.mine && entry.docId === state.mine.docId;
+  const r = analyze(entry.answers);
+  $("back-mine").hidden = isMine || !state.mine;
+  $("r-eyebrow").textContent = isMine ? `Resultados de ${entry.name} · tú` : `Resultados de ${entry.name}`;
+  $("r-ideology").textContent = r.ideo.label;
+  const chip = $("r-party");
+  chip.replaceChildren(el("i", { style: `background:${r.top.color}` }), r.top.name);
+  $("r-aff").textContent = `${r.aff[0].aff}% de afinidad`;
+  $("r-party-desc").textContent = r.top.desc;
+
+  $("r-axes").replaceChildren(
+    axisBar("Economía", "Socialista", "Capitalista", "var(--left)", "var(--right)", r.sc.e),
+    axisBar("Sociedad", "Progresista", "Conservador", "var(--prog)", "var(--cons)", r.sc.s),
+    axisBar("Territorio", "Plurinacional", "Centralista", "var(--muted)", "var(--muted)", r.sc.t)
+  );
+
+  // Análisis
+  const paras = [];
+  paras.push(r.ideo.text);
+  const op = strongestOpinions(entry.answers);
+  const bits = [];
+  if (op.pro.length) bits.push("muy a favor de " + listJoin(op.pro));
+  if (op.con.length) bits.push("muy en contra de " + listJoin(op.con));
+  if (bits.length) paras.push("Donde lo tienes más claro: " + bits.join(", y ") + ".");
+  const inten = r.intensity;
+  paras.push(inten >= 0.6 ? "Respondes con mucha convicción: casi todas tus respuestas están cerca de los extremos. Tienes opiniones firmes y te cuesta ver el punto medio en muchos temas."
+    : inten >= 0.38 ? "Tus opiniones son claras pero no extremas: tomas partido en la mayoría de temas y matizas en otros."
+    : "Respondes con mucha moderación: casi todo lo puntúas cerca del medio. Ves matices en cada tema y desconfías de las posturas tajantes.");
+  paras.push(territoryText(r.sc.t));
+  const p1 = r.aff[0], p2 = r.aff[1], p3 = r.aff[2];
+  let pt = `El partido más cercano a lo que piensas es ${p1.party.name} (${p1.aff}%), seguido de ${p2.party.name} (${p2.aff}%) y ${p3.party.name} (${p3.aff}%).`;
+  const de = r.sc.e - p1.party.e, ds = r.sc.s - p1.party.s;
+  if (Math.max(Math.abs(de), Math.abs(ds)) >= 30) {
+    pt += Math.abs(de) >= Math.abs(ds)
+      ? ` Aun así, en economía tu postura es bastante más ${de < 0 ? "partidaria de lo público" : "liberal"} que la de ${p1.party.name}.`
+      : ` Aun así, en lo social tu postura es bastante más ${ds < 0 ? "progresista" : "conservadora"} que la de ${p1.party.name}.`;
+  }
+  if (p1.aff - p2.aff <= 3) pt += ` La diferencia entre los dos primeros es mínima: podrías dudar entre ambos.`;
+  if (["erc", "junts", "pnv", "bildu", "bng"].includes(p1.party.id)) pt += ` Ten en cuenta que ${p1.party.name} solo se presenta en su comunidad; entre los partidos de ámbito estatal, el más cercano es ${r.aff.find(a => !["erc", "junts", "pnv", "bildu", "bng"].includes(a.party.id)).party.name}.`;
+  paras.push(pt);
+  $("r-analysis").replaceChildren(...paras.map(t => el("p", null, t)));
+
+  // Partidos
+  $("r-parties").replaceChildren(...r.aff.map(a => el("div", { class: "pbar" },
+    el("span", { class: "name", title: a.party.name }, a.party.name),
+    el("span", { class: "track" }, el("i", { style: `width:${a.aff}%;background:${a.party.color}` })),
+    el("span", { class: "pct num" }, a.aff + "%")
+  )));
+
+  renderSaveStatus();
+  renderGroupText();
+  renderGroup();
+}
+
+function groupWith(entry) {
+  const list = state.entries.slice();
+  if (!list.some(x => x.docId === entry.docId)) list.push(entry);
+  return list;
+}
+
+function renderGroupText() {
+  const entry = state.viewing;
+  const box = $("r-group-text");
+  if (!entry) return;
+  if (state.dbState === "none") { box.replaceChildren(el("p", { class: "muted" }, "No se ha podido cargar el grupo. Recarga la página en un momento.")); return; }
+  if (state.dbState === "loading") { box.replaceChildren(el("p", { class: "muted" }, "Cargando el grupo…")); return; }
+  const all = groupWith(entry).map(x => ({ x, sc: computeScores(x.answers) }));
+  const me = all.find(o => o.x.docId === entry.docId);
+  const others = all.filter(o => o !== me);
+  if (!others.length) { box.replaceChildren(el("p", { class: "muted" }, "Todavía no hay nadie más en el grupo. Pasa el enlace y vuelve cuando hayan respondido.")); return; }
+  const who = state.mine && entry.docId === state.mine.docId ? "tú" : entry.name;
+  const paras = [];
+  const dist = o => Math.hypot(o.sc.e - me.sc.e, o.sc.s - me.sc.s);
+  const sorted = others.slice().sort((a, b) => dist(a) - dist(b));
+  const closest = sorted[0], farthest = sorted[sorted.length - 1];
+  paras.push(others.length === 1
+    ? `De momento solo hay otra persona: ${closest.x.name}, a una distancia de ${Math.round(dist(closest))} puntos en el mapa.`
+    : `La persona que más piensa como ${who} es ${closest.x.name}. Con quien más ${who === "tú" ? "discutirías" : "discutiría"} es ${farthest.x.name}.`);
+  const pctLeft = Math.round(others.filter(o => o.sc.e > me.sc.e).length / others.length * 100);
+  const pctProg = Math.round(others.filter(o => o.sc.s > me.sc.s).length / others.length * 100);
+  const ecoTxt = pctLeft === 100 ? "es la posición más de izquierdas del grupo en economía" : pctLeft === 0 ? "es la posición más capitalista del grupo" : `está más a la izquierda en economía que el ${pctLeft}% del grupo`;
+  const socTxt = pctProg === 100 ? "la más progresista en lo social" : pctProg === 0 ? "la más conservadora en lo social" : `más progresista que el ${pctProg}% en lo social`;
+  paras.push(`${who === "tú" ? "Tu postura" : "La postura de " + entry.name} ${ecoTxt}, y ${socTxt}.`);
+  const avg = { e: Math.round(all.reduce((s, o) => s + o.sc.e, 0) / all.length), s: Math.round(all.reduce((s, o) => s + o.sc.s, 0) / all.length) };
+  const avgIdeo = ideologyOf({ e: avg.e, s: avg.s, t: 0 });
+  const dAvg = Math.hypot(me.sc.e - avg.e, me.sc.s - avg.s);
+  paras.push(`De media, el grupo sale «${avgIdeo.label}». ` + (dAvg < 25 ? `${who === "tú" ? "Estás" : entry.name + " está"} muy cerca de esa media: ${who === "tú" ? "eres" : "es"} el termómetro del grupo.` : dAvg < 60 ? `${who === "tú" ? "Te separas" : entry.name + " se separa"} de la media lo justo para tener tus propias discusiones.` : `${who === "tú" ? "Estás" : entry.name + " está"} lejos de la media: en las cenas de política ${who === "tú" ? "te toca" : "le toca"} llevar la contraria.`));
+  const sameParty = others.filter(o => affinities(o.sc)[0].party.id === affinities(me.sc)[0].party.id).map(o => o.x.name);
+  if (sameParty.length) paras.push(`Comparte partido más afín con ${listJoin(sameParty)}.`.replace("Comparte", who === "tú" ? "Compartes" : "Comparte"));
+  box.replaceChildren(...paras.map(t => el("p", null, t)));
+}
+
+// ---------- Grupo ----------
+function renderGroup() {
+  if (state.screen !== "result") return;
+  const sub = $("group-sub");
+  const viewing = state.viewing;
+  const list = viewing ? groupWith(viewing) : state.entries;
+  if (state.dbState === "none") sub.textContent = "No se ha podido cargar el grupo. Aquí solo apareces tú; recarga la página en un momento.";
+  else if (state.dbState === "loading") sub.textContent = "Cargando…";
+  else sub.textContent = `${list.length} ${list.length === 1 ? "persona" : "personas"} en el mapa. Arriba conservador, abajo progresista; a la izquierda socialista, a la derecha capitalista.`;
+  const box = $("group-chart");
+  box.replaceChildren();
+  drawChart(box, list, viewing && viewing.docId, $("show-parties").checked, $("show-names").checked);
+
+  // Distribución de voto
+  const counts = {};
+  list.forEach(x => { const id = affinities(computeScores(x.answers))[0].party.id; counts[id] = (counts[id] || 0) + 1; });
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const max = rows.length ? rows[0][1] : 1;
+  $("group-dist").replaceChildren(...(rows.length ? rows.map(([id, c]) => el("div", { class: "pbar" },
+    el("span", { class: "name" }, PARTY_BY_ID[id].name),
+    el("span", { class: "track" }, el("i", { style: `width:${c / max * 100}%;background:${PARTY_BY_ID[id].color}` })),
+    el("span", { class: "pct num" }, String(c))
+  )) : [el("div", { class: "empty" }, "Aún no hay votos.")]));
+
+  // Lista
+  const lst = $("group-list");
+  const sorted = list.map(x => ({ x, r: analyze(x.answers) })).sort((a, b) => a.r.sc.e - b.r.sc.e);
+  lst.replaceChildren(...(sorted.length ? sorted.map(({ x, r }) => {
+    const isMe = state.mine && x.docId === state.mine.docId;
+    const acts = el("div", { class: "acts" }, el("span", { class: "num small muted", title: "Economía / Sociedad" }, `${r.sc.e > 0 ? "+" : ""}${r.sc.e} / ${r.sc.s > 0 ? "+" : ""}${r.sc.s}`));
+    return el("div", { class: "member" },
+      el("button", { class: "who", type: "button", onclick: () => { state.viewing = x; show("result"); } },
+        el("b", null, el("span", { class: "dot", style: `background:${r.top.color}` }), x.name + (isMe ? " (tú)" : "")),
+        el("span", { class: "meta" }, `${r.ideo.label} · ${r.top.name}`)),
+      acts);
+  }) : [el("div", { class: "empty" }, "Nadie todavía.")]));
+
+  renderStrips(list, viewing && viewing.docId);
+  renderCompareOptions(list, viewing);
+}
+
+// Una línea por eje con todos los del grupo; las etiquetas se apilan para no pisarse.
+function renderStrips(list, highlightId) {
+  const box = $("group-strips");
+  box.replaceChildren();
+  if (!list.length) return;
+  const axes = [
+    { k: "e", left: "Socialista", right: "Capitalista", cl: "var(--left)", cr: "var(--right)" },
+    { k: "s", left: "Progresista", right: "Conservador", cl: "var(--prog)", cr: "var(--cons)" },
+    { k: "t", left: "Plurinacional", right: "Centralista", cl: "var(--muted)", cr: "var(--muted)" }
+  ];
+  const pts = list.map(x => ({ x, sc: computeScores(x.answers) }));
+  axes.forEach(ax => {
+    const W = 460, P = 16, S = W - 2 * P, X = v => P + (v + 100) / 200 * S;
+    const items = pts.map(p => ({ x: p.x, v: p.sc[ax.k], px: X(p.sc[ax.k]), hl: p.x.docId === highlightId })).sort((a, b) => a.px - b.px);
+    const levelEnd = [];
+    items.forEach(it => {
+      const w = Math.min(it.x.name.length, 14) * 6.4 + 6;
+      let left = it.px - w / 2;
+      left = Math.max(0, Math.min(W - w, left));
+      let lvl = levelEnd.findIndex(end => end < left);
+      if (lvl === -1) { lvl = levelEnd.length; levelEnd.push(0); }
+      levelEnd[lvl] = left + w;
+      it.lvl = lvl; it.lx = left + w / 2;
+    });
+    const lineY = 26, H = lineY + 22 + levelEnd.length * 15;
+    const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `Posición de cada persona: ${ax.left} a ${ax.right}` });
+    svg.append(
+      sv("text", { x: P, y: 12, "font-size": 12, "font-weight": 700, fill: ax.cl }, ax.left),
+      sv("text", { x: W - P, y: 12, "text-anchor": "end", "font-size": 12, "font-weight": 700, fill: ax.cr }, ax.right),
+      sv("line", { x1: P, y1: lineY, x2: W - P, y2: lineY, stroke: "var(--line)", "stroke-width": 4, "stroke-linecap": "round" }),
+      sv("line", { x1: X(0), y1: lineY - 7, x2: X(0), y2: lineY + 7, stroke: "var(--muted)", "stroke-width": 1 })
+    );
+    items.forEach(it => {
+      const ty = lineY + 22 + it.lvl * 15;
+      const g = sv("g", { style: "cursor:pointer" });
+      g.append(sv("title", {}, `${it.x.name}: ${it.v}`));
+      if (it.lvl > 0 || Math.abs(it.lx - it.px) > 3) g.append(sv("line", { x1: it.px, y1: lineY + 6, x2: it.lx, y2: ty - 10, stroke: "var(--line)", "stroke-width": 1 }));
+      g.append(sv("circle", { cx: it.px, cy: lineY, r: it.hl ? 7 : 5, fill: it.hl ? "var(--mark)" : "var(--accent)", stroke: it.hl ? "var(--ink)" : "var(--surface)", "stroke-width": it.hl ? 2.5 : 1.5 }));
+      const name = it.x.name.length > 14 ? it.x.name.slice(0, 13) + "…" : it.x.name;
+      g.append(sv("text", { x: it.lx, y: ty, "text-anchor": "middle", "font-size": 11, "font-weight": it.hl ? 700 : 500, fill: "var(--ink)" }, name));
+      g.addEventListener("click", () => { state.viewing = it.x; show("result"); });
+      svg.append(g);
+    });
+    box.append(el("div", { class: "chart-wrap", style: "max-width:100%" }, svg));
+  });
+}
+
+let compareWith = null;
+function renderCompareOptions(list, viewing) {
+  const others = viewing ? list.filter(x => x.docId !== viewing.docId) : [];
+  $("compare-block").hidden = !others.length;
+  if (!others.length) return;
+  $("compare-who").textContent = state.mine && viewing.docId === state.mine.docId ? "ti" : viewing.name;
+  const sel = $("compare-select");
+  if (!compareWith || !others.some(o => o.docId === compareWith)) {
+    const me = computeScores(viewing.answers);
+    compareWith = others.slice().sort((a, b) => {
+      const sa = computeScores(a.answers), sb = computeScores(b.answers);
+      return Math.hypot(sb.e - me.e, sb.s - me.s) - Math.hypot(sa.e - me.e, sa.s - me.s);
+    })[0].docId; // por defecto, la persona más distinta: da más que hablar
+  }
+  sel.replaceChildren(...others.map(o => { const op = el("option", { value: o.docId }, o.name); if (o.docId === compareWith) op.selected = true; return op; }));
+  renderCompare(viewing, others.find(o => o.docId === compareWith));
+}
+
+function renderCompare(a, b) {
+  const out = $("compare-out");
+  if (!a || !b) { out.replaceChildren(); return; }
+  const both = QUESTIONS.map((q, i) => ({ q, x: clampAns(a.answers[i]), y: clampAns(b.answers[i]) })).filter(d => d.x != null && d.y != null);
+  if (!both.length) { out.replaceChildren(el("p", { class: "muted" }, "No tenéis respuestas en común.")); return; }
+  const agree = Math.round(100 - both.reduce((s, d) => s + Math.abs(d.x - d.y), 0) / both.length / 9 * 100);
+  const aName = state.mine && a.docId === state.mine.docId ? "Tú" : a.name;
+  const verdict = agree >= 80 ? "Pensáis casi igual." : agree >= 65 ? "Coincidís en bastante." : agree >= 50 ? "Coincidís en algunas cosas y chocáis en otras." : "Pensáis muy distinto: buen material para una discusión.";
+  const row = d => el("div", { class: "notice", style: "gap:6px" },
+    el("span", null, d.q.text),
+    el("div", { class: "row small", style: "gap:14px" },
+      el("span", null, el("b", null, aName + ": "), el("span", { class: "num" }, d.x + "/10")),
+      el("span", null, el("b", null, b.name + ": "), el("span", { class: "num" }, d.y + "/10"))));
+  const byDiff = both.slice().sort((p, q) => Math.abs(q.x - q.y) - Math.abs(p.x - p.y));
+  const clash = byDiff.filter(d => Math.abs(d.x - d.y) >= 4).slice(0, 3);
+  const same = byDiff.slice().reverse().filter(d => Math.abs(d.x - d.y) <= 1 && Math.abs(d.x - 5.5) >= 2).slice(0, 3);
+  const sa = computeScores(a.answers), sb = computeScores(b.answers);
+  const kids = [
+    el("div", { class: "row", style: "align-items:baseline;gap:12px" }, el("span", { class: "ideology num", style: "font-size:2.2rem;font-family:var(--font-display)" }, agree + "%"), el("span", null, "de coincidencia. " + verdict)),
+    el("div", { class: "axes" },
+      compareBar("Economía", "Socialista", "Capitalista", sa.e, sb.e, aName, b.name),
+      compareBar("Sociedad", "Progresista", "Conservador", sa.s, sb.s, aName, b.name),
+      compareBar("Territorio", "Plurinacional", "Centralista", sa.t, sb.t, aName, b.name))
+  ];
+  if (clash.length) kids.push(el("h3", { style: "font-size:1rem" }, "Donde más chocáis"), ...clash.map(row));
+  if (same.length) kids.push(el("h3", { style: "font-size:1rem" }, "Donde estáis de acuerdo"), ...same.map(row));
+  out.replaceChildren(...kids);
+}
+
+function compareBar(label, left, right, va, vb, na, nb) {
+  const pa = (va + 100) / 2, pb = (vb + 100) / 2;
+  return el("div", { class: "axis" },
+    el("div", { class: "axis-ends" }, el("span", null, left), el("span", { class: "muted" }, label), el("span", null, right)),
+    el("div", { class: "axis-track", style: "background:var(--line)" },
+      el("span", { class: "axis-dot", style: `left:${pb}%;background:var(--accent);width:16px;height:16px;border-width:2px`, title: nb }),
+      el("span", { class: "axis-dot", style: `left:${pa}%;width:16px;height:16px;border-width:2px`, title: na })),
+    el("div", { class: "axis-val small" }, el("span", { class: "dot", style: "background:var(--mark);border:1.5px solid var(--ink)" }), na + " ", el("span", { class: "num" }, String(va)), "   ", el("span", { class: "dot", style: "background:var(--accent);margin-left:12px" }), nb + " ", el("span", { class: "num" }, String(vb))));
+}
+
+function drawChart(container, entries, highlightId, showParties, showNames) {
+  const W = 460, P = 46, S = W - 2 * P;
+  const X = e => P + (e + 100) / 200 * S;
+  const Y = s => P + (100 - s) / 200 * S;
+  const svg = sv("svg", { viewBox: `0 0 ${W} ${W}`, role: "img", "aria-label": "Mapa político: economía en horizontal, sociedad en vertical" });
+  // cuadrantes
+  svg.append(
+    sv("rect", { x: P, y: P, width: S / 2, height: S / 2, fill: "var(--q1)" }),
+    sv("rect", { x: P + S / 2, y: P, width: S / 2, height: S / 2, fill: "var(--q4)" }),
+    sv("rect", { x: P, y: P + S / 2, width: S / 2, height: S / 2, fill: "var(--q3)" }),
+    sv("rect", { x: P + S / 2, y: P + S / 2, width: S / 2, height: S / 2, fill: "var(--q2)" }),
+    sv("rect", { x: P, y: P, width: S, height: S, fill: "none", stroke: "var(--line)", "stroke-width": 1 })
+  );
+  [-50, 50].forEach(v => {
+    svg.append(sv("line", { x1: X(v), y1: P, x2: X(v), y2: P + S, stroke: "var(--line)", "stroke-dasharray": "3 4" }));
+    svg.append(sv("line", { x1: P, y1: Y(v), x2: P + S, y2: Y(v), stroke: "var(--line)", "stroke-dasharray": "3 4" }));
+  });
+  svg.append(sv("line", { x1: X(0), y1: P, x2: X(0), y2: P + S, stroke: "var(--muted)", "stroke-width": 1.2 }));
+  svg.append(sv("line", { x1: P, y1: Y(0), x2: P + S, y2: Y(0), stroke: "var(--muted)", "stroke-width": 1.2 }));
+  // etiquetas de ejes
+  const lab = (x, y, t, fill, rot) => { const n = sv("text", { x, y, "text-anchor": "middle", "font-size": 13, "font-weight": 700, fill }, t); if (rot) n.setAttribute("transform", `rotate(${rot} ${x} ${y})`); svg.append(n); };
+  lab(W / 2, P - 16, "CONSERVADOR", "var(--cons)");
+  lab(W / 2, P + S + 28, "PROGRESISTA", "var(--prog)");
+  lab(P - 22, W / 2, "SOCIALISTA", "var(--left)", -90);
+  lab(P + S + 22, W / 2, "CAPITALISTA", "var(--right)", 90);
+
+  if (showParties) {
+    PARTIES.forEach(p => {
+      const g = sv("g", { opacity: 0.85 });
+      g.append(sv("title", {}, p.name));
+      g.append(sv("rect", { x: X(p.e) - 5, y: Y(p.s) - 5, width: 10, height: 10, rx: 2, fill: p.color, stroke: "var(--surface)", "stroke-width": 1.5 }));
+      g.append(sv("text", { x: X(p.e), y: Y(p.s) + 18, "text-anchor": "middle", "font-size": 9.5, "font-weight": 700, fill: "var(--muted)" }, p.short));
+      svg.append(g);
+    });
+  }
+
+  const pts = entries.map(x => ({ x, sc: computeScores(x.answers) }));
+  if (pts.length > 1) {
+    const ae = pts.reduce((s, o) => s + o.sc.e, 0) / pts.length, as = pts.reduce((s, o) => s + o.sc.s, 0) / pts.length;
+    const g = sv("g", {});
+    g.append(sv("title", {}, "Media del grupo"));
+    g.append(sv("path", { d: `M${X(ae)} ${Y(as) - 9} L${X(ae) + 9} ${Y(as)} L${X(ae)} ${Y(as) + 9} L${X(ae) - 9} ${Y(as)} Z`, fill: "none", stroke: "var(--ink)", "stroke-width": 2 }));
+    g.append(sv("text", { x: X(ae), y: Y(as) - 13, "text-anchor": "middle", "font-size": 10, "font-weight": 600, fill: "var(--ink)" }, "media"));
+    svg.append(g);
+  }
+  // los demás primero, el destacado encima
+  pts.sort((a, b) => (a.x.docId === highlightId) - (b.x.docId === highlightId));
+  pts.forEach(({ x, sc }) => {
+    const hl = x.docId === highlightId;
+    const cx = X(sc.e), cy = Y(sc.s);
+    const g = sv("g", { style: "cursor:pointer" });
+    g.append(sv("title", {}, `${x.name}: economía ${sc.e}, sociedad ${sc.s}`));
+    g.append(sv("circle", { cx, cy, r: hl ? 9 : 6, fill: hl ? "var(--mark)" : "var(--accent)", stroke: hl ? "var(--ink)" : "var(--surface)", "stroke-width": hl ? 3 : 1.5 }));
+    if (showNames || hl) {
+      const right = cx > W - 120;
+      g.append(sv("text", { x: right ? cx - 12 : cx + 12, y: cy + 4, "text-anchor": right ? "end" : "start", "font-size": hl ? 13 : 11.5, "font-weight": hl ? 700 : 500, fill: "var(--ink)", stroke: "var(--bg)", "stroke-width": 3, "paint-order": "stroke" }, x.name));
+    }
+    g.addEventListener("click", () => { state.viewing = x; show("result"); });
+    svg.append(g);
+  });
+  container.append(svg);
+}
+
+// ---------- Datos compartidos ----------
+function onRows(rows) {
+  state.entries = rows.map(r => sanitizeEntry(String(r.id || ""), r)).filter(e => e && e.docId);
+  state.dbState = "ready";
+  if (state.viewing && state.mine && state.viewing.docId !== state.mine.docId) {
+    const fresh = state.entries.find(e => e.docId === state.viewing.docId);
+    if (fresh) state.viewing = fresh;
+  }
+  refreshGroupViews();
+}
+let loading = false;
+async function loadGroup() {
+  if (loading) return;
+  loading = true;
+  try { onRows(await callServer("getResults")); }
+  catch (e) { if (state.dbState !== "ready") { state.dbState = "none"; refreshGroupViews(); } }
+  finally { loading = false; }
+}
+function connect() {
+  loadGroup();
+  setInterval(() => { if (document.visibilityState === "visible" && state.screen !== "quiz") loadGroup(); }, 30000);
+}
+function refreshGroupViews() {
+  if (state.screen === "intro") renderIntroGroup();
+  if (state.screen === "result") { renderGroupText(); renderGroup(); }
+}
+
+// ---------- Eventos ----------
+function wire() {
+  buildBoxes();
+  $("start-form").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const name = cleanName($("name-input").value);
+    if (!name) { $("name-err").hidden = false; $("name-input").focus(); return; }
+    $("name-err").hidden = true;
+    state.name = name;
+    state.answers = new Array(N).fill(null);
+    state.idx = 0;
+    saveDraft();
+    show("quiz");
+  });
+  $("resume-btn").addEventListener("click", () => {
+    const d = store("votos.draft");
+    if (!d) return;
+    state.name = cleanName(d.name) || cleanName($("name-input").value) || "Sin nombre";
+    state.answers = Array.from({ length: N }, (_, i) => clampAns(d.answers && d.answers[i]));
+    state.idx = Math.min(Math.max(0, d.idx | 0), N - 1);
+    show("quiz");
+  });
+  $("mine-btn").addEventListener("click", () => { state.viewing = state.mine; show("result"); });
+  $("q-prev").addEventListener("click", prev);
+  $("q-next").addEventListener("click", next);
+  $("q-skip").addEventListener("click", skip);
+  $("back-intro").addEventListener("click", () => show("intro"));
+  $("back-mine").addEventListener("click", () => { state.viewing = state.mine; show("result"); });
+  $("show-parties").addEventListener("change", renderGroup);
+  $("show-names").addEventListener("change", renderGroup);
+  $("compare-select").addEventListener("change", ev => { compareWith = ev.target.value; const v = state.viewing; renderCompare(v, groupWith(v).find(x => x.docId === compareWith)); });
+  document.addEventListener("keydown", ev => {
+    if (state.screen !== "quiz" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (/^[0-9]$/.test(ev.key)) { ev.preventDefault(); choose(ev.key === "0" ? 10 : Number(ev.key)); }
+    else if (ev.key === "ArrowRight") next();
+    else if (ev.key === "ArrowLeft") prev();
+  });
+}
+
+function start() {
+  wire();
+  const mine = store("votos.mine");
+  if (mine && Array.isArray(mine.answers) && mine.answers.length === N && mine.docId) state.mine = { docId: String(mine.docId), name: cleanName(mine.name), answers: mine.answers.map(clampAns) };
+  show("intro");
+  connect();
+}
+start();
+})();
+</script>
+
+</body>
+</html>
