@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Copiar código del test</title>
+<style>
+  :root { --bg: #eef1f6; --surface: #fff; --ink: #141a2e; --muted: #5a6379; --line: #d6dce7; --accent: #2448d8; --ok: #1d7a46; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0e1220; --surface: #171c2f; --ink: #e9ecf5; --muted: #9aa3ba; --line: #2b3350; --accent: #6f8cff; --ok: #4cc685; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.5 system-ui, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 16px; }
+  h1 { font-size: 1.6rem; margin: 0; }
+  p { margin: 0; color: var(--muted); }
+  button { font: inherit; font-weight: 700; font-size: 1.15rem; padding: 18px; border-radius: 12px; border: 0; background: var(--accent); color: #fff; width: 100%; cursor: pointer; }
+  button.ok { background: var(--ok); }
+  textarea { width: 100%; height: 220px; font: 12px/1.4 ui-monospace, Menlo, monospace; padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Código del servidor</h1>
+  <button id="copy" type="button">Copiar código</button>
+  <p id="msg">Pulsa el botón y el código se copiará entero.</p>
+  <div class="card">
+    <b>Después, desde el móvil:</b>
+    <ol>
+      <li>En Chrome, abre <b>script.new</b>, pulsa los tres puntos ⋮ y activa <b>Sitio de escritorio</b> (el editor de Google no funciona bien en vista móvil).</li>
+      <li>Mantén pulsado dentro del editor → <b>Seleccionar todo</b> → <b>Pegar</b>. Guarda con el icono del disquete.</li>
+      <li><b>Implementar → Nueva implementación</b> → engranaje → <b>Aplicación web</b>. Ejecutar como: <b>Yo</b>. Acceso: <b>Cualquier usuario</b>. Implementar y autorizar.</li>
+      <li>Copia la URL que termina en <b>/exec</b> y mándasela a Claude.</li>
+    </ol>
+  </div>
+  <p>Si el botón no funciona, mantén pulsado el texto de abajo → Seleccionar todo → Copiar.</p>
+  <textarea id="code" readonly>// Servidor del test &quot;¿A quién votarías?&quot; (Google Apps Script, proyecto independiente).
+// Sirve la página publicada en GitHub Pages y guarda cada resultado como una fila
+// de la pestaña &quot;Resultados&quot; de la Hoja de cálculo SHEET_ID.
+
+const SHEET_ID = &#x27;1Ofw6yDnEorM2wekjOie08aJ_yVx9PoQ1DqyQxWor35E&#x27;;
+const PAGE_URL = &#x27;https://filmbyatlas.github.io/votos/app.html&#x27;;
+const SHEET_NAME = &#x27;Resultados&#x27;;
+const HEADERS = [&#x27;id&#x27;, &#x27;nombre&#x27;, &#x27;fecha&#x27;, &#x27;economia&#x27;, &#x27;sociedad&#x27;, &#x27;territorio&#x27;, &#x27;respuestas&#x27;];
+const N_QUESTIONS = 30;
+
+function doGet() {
+  const res = UrlFetchApp.fetch(PAGE_URL + &#x27;?v=&#x27; + Date.now(), { muteHttpExceptions: true });
+  const html = res.getResponseCode() === 200
+    ? res.getContentText(&#x27;UTF-8&#x27;)
+    : &#x27;&lt;p style=&quot;font-family:sans-serif;padding:16px&quot;&gt;No se ha podido cargar el test. Recarga la página en un momento.&lt;/p&gt;&#x27;;
+  return HtmlService.createHtmlOutput(html)
+    .setTitle(&#x27;¿A quién votarías?&#x27;)
+    .addMetaTag(&#x27;viewport&#x27;, &#x27;width=device-width, initial-scale=1&#x27;)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function sheet_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_NAME);
+    sh.appendRow(HEADERS);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+// Evita que un nombre como &quot;=HYPERLINK(...)&quot; se guarde como fórmula.
+function safeText_(s) {
+  s = String(s || &#x27;&#x27;).replace(/\s+/g, &#x27; &#x27;).trim().slice(0, 30);
+  return /^[=+\-@]/.test(s) ? &quot;&#x27;&quot; + s : s;
+}
+
+function parseAnswers_(txt) {
+  const parts = String(txt || &#x27;&#x27;).split(&#x27;,&#x27;);
+  if (parts.length !== N_QUESTIONS) return null;
+  return parts.map(function (p) {
+    const n = Number(p);
+    return p !== &#x27;&#x27; &amp;&amp; n &gt;= 1 &amp;&amp; n &lt;= 10 ? Math.round(n) : null;
+  });
+}
+
+function getResults() {
+  const sh = sheet_();
+  const last = sh.getLastRow();
+  if (last &lt; 2) return [];
+  return sh.getRange(2, 1, last - 1, HEADERS.length).getValues()
+    .map(function (r) {
+      return {
+        id: String(r[0]),
+        name: String(r[1]).replace(/^&#x27;/, &#x27;&#x27;),
+        createdAt: r[2] instanceof Date ? r[2].toISOString() : String(r[2]),
+        answers: parseAnswers_(r[6])
+      };
+    })
+    .filter(function (x) { return x.id &amp;&amp; x.name &amp;&amp; x.answers; });
+}
+
+function saveResult(d) {
+  if (!d || typeof d !== &#x27;object&#x27;) throw new Error(&#x27;Datos vacíos&#x27;);
+  const id = String(d.id || &#x27;&#x27;).replace(/[^A-Za-z0-9_-]/g, &#x27;&#x27;).slice(0, 80);
+  const name = safeText_(d.name);
+  if (!id || !name) throw new Error(&#x27;Falta el nombre&#x27;);
+  if (!Array.isArray(d.answers) || d.answers.length !== N_QUESTIONS) throw new Error(&#x27;Respuestas incompletas&#x27;);
+  const answers = d.answers.map(function (a) {
+    const n = Number(a);
+    return a !== null &amp;&amp; n &gt;= 1 &amp;&amp; n &lt;= 10 ? String(Math.round(n)) : &#x27;&#x27;;
+  }).join(&#x27;,&#x27;);
+  const num = function (v) { v = Number(v); return isFinite(v) ? Math.max(-100, Math.min(100, Math.round(v))) : 0; };
+  const row = [id, name, new Date(), num(d.e), num(d.s), num(d.t), answers];
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sh = sheet_();
+    const last = sh.getLastRow();
+    let target = -1;
+    if (last &gt;= 2) {
+      const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+      for (let i = 0; i &lt; ids.length; i++) if (String(ids[i][0]) === id) { target = i + 2; break; }
+    }
+    // Columna de respuestas como texto para que &quot;7,3,10&quot; no se convierta en número.
+    if (target &gt; 0) {
+      sh.getRange(target, 7).setNumberFormat(&#x27;@&#x27;);
+      sh.getRange(target, 1, 1, row.length).setValues([row]);
+    } else {
+      sh.appendRow(row.slice(0, 6).concat([&#x27;&#x27;]));
+      sh.getRange(sh.getLastRow(), 7).setNumberFormat(&#x27;@&#x27;).setValue(answers);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return getResults();
+}
+</textarea>
+</main>
+<script>
+const btn = document.getElementById("copy"), msg = document.getElementById("msg"), ta = document.getElementById("code");
+function done() { btn.textContent = "Copiado ✓"; btn.className = "ok"; msg.textContent = "Ya puedes pegarlo en el editor de Google Apps Script."; }
+function fallback() {
+  ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+  let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+  if (ok) done(); else msg.textContent = "No se ha podido copiar automáticamente: el texto de abajo ya está seleccionado, pulsa Copiar.";
+}
+btn.addEventListener("click", () => {
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(ta.value).then(done, fallback);
+  else fallback();
+});
+</script>
+</body>
+</html>
