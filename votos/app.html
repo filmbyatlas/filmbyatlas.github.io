@@ -346,7 +346,7 @@ label { font-weight: 600; font-size: .9rem; }
     <div class="stack" style="gap:4px">
       <span class="eyebrow">Consejo de Ministros</span>
       <h2>El Gobierno del grupo</h2>
-      <p class="muted small">Preside quien encabeza el ranking presidencial. Cada ministerio va para quien más se acerca al perfil ideal en esos temas.</p>
+      <p class="muted small">Preside quien encabeza el ranking presidencial. Los ministerios se reparten para que el Gobierno, en conjunto, quede lo más cerca posible del perfil ideal, con al menos una cartera por persona antes de que nadie repita.</p>
     </div>
     <div id="cab-me"></div>
     <div class="stack" style="gap:6px" id="cab-list"></div>
@@ -1067,38 +1067,63 @@ function refreshGroupViews() {
 // ---------- Gobierno del grupo ----------
 // Cada ministerio agrupa las afirmaciones de su área; gana quien menos se aleja del perfil ideal en ellas.
 const MINISTRIES = [
-  { name: "Vivienda", icon: "🏠", q: [0] },
+  { name: "Economía y Vivienda", icon: "🏠", q: [0, 2, 7, 9] },
   { name: "Hacienda", icon: "💶", q: [2, 5, 18, 25] },
   { name: "Trabajo", icon: "🛠️", q: [14, 16, 21, 23, 29] },
-  { name: "Economía", icon: "📈", q: [7, 9] },
-  { name: "Interior", icon: "👮", q: [8, 15] },
-  { name: "Inclusión y Migraciones", icon: "🌍", q: [1, 22] },
-  { name: "Igualdad", icon: "⚖️", q: [12, 19] },
-  { name: "Sanidad y Educación", icon: "🏥", q: [11, 28] },
-  { name: "Derechos Sociales", icon: "🕊️", q: [6, 10] },
-  { name: "Transición Ecológica", icon: "🌱", q: [24] },
+  { name: "Interior y Migraciones", icon: "👮", q: [1, 8, 15, 22] },
+  { name: "Igualdad y Derechos", icon: "🕊️", q: [6, 10, 12, 19] },
+  { name: "Sanidad, Educación y Familia", icon: "🏥", q: [3, 11, 28] },
+  { name: "Transición Ecológica", icon: "🌱", q: [9, 24, 0] },
   { name: "Política Territorial", icon: "🗺️", q: [4, 13, 20, 27] },
-  { name: "Cultura y Tradiciones", icon: "🎭", q: [3, 17, 26] }
+  { name: "Cultura y Tradiciones", icon: "🎭", q: [3, 17, 26, 28] }
 ];
-function ministryFit(answers, m) {
+function ministryFitRaw(answers, m) {
   let sum = 0, wsum = 0;
   m.q.forEach(i => { const a = clampAns(answers[i]); if (a == null) return; sum += IDEAL[i].w * Math.abs(a - IDEAL[i].v); wsum += IDEAL[i].w; });
-  return wsum ? Math.max(0, Math.min(100, Math.round(100 - (sum / wsum) / 5 * 100))) : null;
+  return wsum ? Math.max(0, Math.min(100, 100 - (sum / wsum) / 5 * 100)) : null;
+}
+function ministryFit(answers, m) { const f = ministryFitRaw(answers, m); return f == null ? null : Math.round(f); }
+
+// Asignación óptima (método húngaro): filas = ministerios, columnas = "plazas" de cada persona.
+function hungarian(cost) {
+  const n = cost.length, m = cost[0].length, INF = 1e18;
+  const u = new Array(n + 1).fill(0), v = new Array(m + 1).fill(0), p = new Array(m + 1).fill(0), way = new Array(m + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    p[0] = i; let j0 = 0;
+    const minv = new Array(m + 1).fill(INF), used = new Array(m + 1).fill(false);
+    do {
+      used[j0] = true; const i0 = p[j0]; let delta = INF, j1 = 0;
+      for (let j = 1; j <= m; j++) if (!used[j]) {
+        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+      }
+      for (let j = 0; j <= m; j++) { if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta; }
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+  }
+  const res = new Array(n).fill(-1);
+  for (let j = 1; j <= m; j++) if (p[j]) res[p[j] - 1] = j - 1;
+  return res;
 }
 function buildCabinet(list) {
-  const ranking = presRanking(list);
-  const president = ranking[0].x;
+  const president = presRanking(list)[0].x;
   const pool = list.length > 1 ? list.filter(x => x.docId !== president.docId) : list;
-  const cap = Math.ceil(MINISTRIES.length / pool.length) + 1; // margen para que cada cartera vaya a quien mejor encaja
-  const pairs = [];
-  pool.forEach(x => MINISTRIES.forEach((m, mi) => { const f = ministryFit(x.answers, m); if (f != null) pairs.push({ x, mi, f }); }));
-  pairs.sort((a, b) => b.f - a.f);
-  const owner = {}, load = {};
-  // primero, un ministerio para cada uno (el que mejor se le da); después se reparte el resto
-  [1, cap].forEach(limit => pairs.forEach(p => {
-    if (owner[p.mi] || (load[p.x.docId] || 0) >= limit) return;
-    owner[p.mi] = p; load[p.x.docId] = (load[p.x.docId] || 0) + 1;
+  const M = MINISTRIES.length;
+  const cap = Math.max(1, Math.ceil(M / pool.length));
+  const slots = [];
+  pool.forEach(x => { for (let k = 0; k < cap; k++) slots.push({ x, k }); });
+  while (slots.length < M) slots.push({ x: null, k: 99 }); // vacantes si no hay gente suficiente
+  // coste = alejarse del ideal; la primera plaza de cada persona tiene prioridad para que todos tengan cartera
+  const cost = MINISTRIES.map(m => slots.map(sl => {
+    if (!sl.x) return 1e6;
+    const f = ministryFitRaw(sl.x.answers, m);
+    return (f == null ? 100 : 100 - f) + (sl.k === 0 ? 0 : 1000 * sl.k);
   }));
+  const pick = hungarian(cost);
+  const owner = {};
+  pick.forEach((j, mi) => { const sl = slots[j]; if (sl && sl.x) owner[mi] = { x: sl.x, f: ministryFit(sl.x.answers, MINISTRIES[mi]) }; });
   return { president, owner };
 }
 function renderCabinet(list) {
@@ -1119,12 +1144,18 @@ function renderCabinet(list) {
     el("span", { style: "text-align:center" }, "🏛️"),
     el("span", null, el("b", null, "Presidencia")),
     el("b", null, who(president)))];
+  const pool = list.filter(x => x.docId !== president.docId);
   MINISTRIES.forEach((m, mi) => {
     const o = owner[mi];
-    rows.push(el("div", { class: "pbar", style: `grid-template-columns:2rem 1fr auto;${o && o.x.docId === viewing.docId ? "font-weight:700" : ""}` },
-      el("span", { style: "text-align:center" }, m.icon),
-      el("span", { class: "name" }, m.name),
-      el("span", null, o ? who(o.x) + " " : "Vacante ", o ? el("span", { class: "num small muted" }, o.f + "/100") : null)));
+    const top = pool.map(x => ({ x, f: ministryFit(x.answers, m) })).filter(t => t.f != null).sort((a, b) => b.f - a.f)[0];
+    const note = o && top && top.x.docId !== o.x.docId && top.f > o.f
+      ? `${top.x.name} sacaba un ${top.f}, pero ya tenía otras carteras en las que encaja mejor.` : null;
+    rows.push(el("div", { class: "stack", style: "gap:2px" },
+      el("div", { class: "pbar", style: `grid-template-columns:2rem 1fr auto;${o && o.x.docId === viewing.docId ? "font-weight:700" : ""}` },
+        el("span", { style: "text-align:center" }, m.icon),
+        el("span", { class: "name", style: "white-space:normal" }, m.name),
+        el("span", { style: "text-align:right" }, o ? who(o.x) + " " : "Vacante ", o ? el("span", { class: "num small muted" }, o.f + "/100") : null)),
+      note ? el("span", { class: "muted", style: "font-size:.75rem;padding-left:2.6rem" }, note) : null));
   });
   $("cab-list").replaceChildren(...rows);
 }
@@ -1317,10 +1348,10 @@ const IDEAL_SC = computeScores(IDEAL.map(x => x.v));
 function presScore(answers) {
   let sum = 0, wsum = 0;
   IDEAL.forEach((it, i) => { const a = clampAns(answers[i]); if (a == null) return; sum += it.w * Math.abs(a - it.v); wsum += it.w; });
-  return wsum ? Math.round(100 - (sum / wsum) / 5 * 100) : 0; // 5 puntos de desviación media ≈ 0/100
+  return wsum ? 100 - (sum / wsum) / 5 * 100 : 0; // 5 puntos de desviación media ≈ 0/100
 }
 function presRanking(list) {
-  return list.map(x => ({ x, score: Math.max(0, Math.min(100, presScore(x.answers))) })).sort((a, b) => b.score - a.score);
+  return list.map(x => { const raw = Math.max(0, Math.min(100, presScore(x.answers))); return { x, raw, score: Math.round(raw) }; }).sort((a, b) => b.raw - a.raw);
 }
 
 function renderPresident() {
