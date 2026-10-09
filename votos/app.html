@@ -396,11 +396,11 @@ const PARTIES = [
   { id: "pp", name: "PP", short: "PP", color: "#1d84ce", e: 40, s: 30, t: 45, desc: "Centroderecha: menos impuestos, gestión económica y unidad de España." },
   { id: "vox", name: "Vox", short: "VOX", color: "#5fb82a", e: 40, s: 85, t: 90, desc: "Derecha nacional-conservadora: inmigración, identidad nacional y recentralización." },
   { id: "salf", name: "Se Acabó La Fiesta", short: "SALF", color: "#7a6a58", e: 60, s: 60, t: 60, desc: "Populismo de derechas antisistema: mano dura y menos Estado." },
-  { id: "erc", name: "ERC", short: "ERC", color: "#f0a600", e: -40, s: -55, t: -85, desc: "Izquierda independentista catalana (ámbito autonómico)." },
-  { id: "junts", name: "Junts", short: "JxC", color: "#1fb5a9", e: 25, s: -5, t: -90, desc: "Independentismo catalán de centroderecha (ámbito autonómico)." },
-  { id: "pnv", name: "PNV", short: "PNV", color: "#2e8540", e: 15, s: -10, t: -70, desc: "Nacionalismo vasco moderado y democristiano (ámbito autonómico)." },
-  { id: "bildu", name: "EH Bildu", short: "BILDU", color: "#9ab800", e: -65, s: -60, t: -95, desc: "Izquierda independentista vasca (ámbito autonómico)." },
-  { id: "bng", name: "BNG", short: "BNG", color: "#5aa5d9", e: -60, s: -55, t: -85, desc: "Izquierda nacionalista gallega (ámbito autonómico)." }
+  { id: "erc", name: "ERC", short: "ERC", color: "#f0a600", e: -40, s: -55, t: -85, region: "Cataluña", desc: "Izquierda independentista catalana (solo se presenta en Cataluña)." },
+  { id: "junts", name: "Junts", short: "JxC", color: "#1fb5a9", e: 25, s: -5, t: -90, region: "Cataluña", desc: "Independentismo catalán de centroderecha (solo se presenta en Cataluña)." },
+  { id: "pnv", name: "PNV", short: "PNV", color: "#2e8540", e: 15, s: -10, t: -70, region: "Euskadi y Navarra", desc: "Nacionalismo vasco moderado y democristiano (solo se presenta en Euskadi y Navarra)." },
+  { id: "bildu", name: "EH Bildu", short: "BILDU", color: "#9ab800", e: -65, s: -60, t: -95, region: "Euskadi y Navarra", desc: "Izquierda independentista vasca (solo se presenta en Euskadi y Navarra)." },
+  { id: "bng", name: "BNG", short: "BNG", color: "#5aa5d9", e: -60, s: -55, t: -85, region: "Galicia", desc: "Izquierda nacionalista gallega (solo se presenta en Galicia)." }
 ];
 const PARTY_BY_ID = Object.fromEntries(PARTIES.map(p => [p.id, p]));
 
@@ -450,7 +450,9 @@ function intensity(answers) {
 function analyze(answers) {
   const sc = computeScores(answers);
   const aff = affinities(sc);
-  return { sc, aff, ideo: ideologyOf(sc), top: aff[0].party, intensity: intensity(answers) };
+  const national = aff.filter(a => !a.party.region);
+  // "Votarías a" siempre es un partido que se presenta en toda España; los nacionalistas solo se mencionan aparte.
+  return { sc, aff, national, ideo: ideologyOf(sc), top: national[0].party, topAff: national[0].aff, intensity: intensity(answers) };
 }
 
 // ---------- Utilidades ----------
@@ -677,7 +679,7 @@ function renderResult() {
   $("r-ideology").textContent = r.ideo.label;
   const chip = $("r-party");
   chip.replaceChildren(el("i", { style: `background:${r.top.color}` }), r.top.name);
-  $("r-aff").textContent = `${r.aff[0].aff}% de afinidad`;
+  $("r-aff").textContent = `${r.topAff}% de afinidad`;
   $("r-party-desc").textContent = r.top.desc;
 
   $("r-axes").replaceChildren(
@@ -699,8 +701,8 @@ function renderResult() {
     : inten >= 0.38 ? "Tus opiniones son claras pero no extremas: tomas partido en la mayoría de temas y matizas en otros."
     : "Respondes con mucha moderación: casi todo lo puntúas cerca del medio. Ves matices en cada tema y desconfías de las posturas tajantes.");
   paras.push(territoryText(r.sc.t));
-  const p1 = r.aff[0], p2 = r.aff[1], p3 = r.aff[2];
-  let pt = `El partido más cercano a lo que piensas es ${p1.party.name} (${p1.aff}%), seguido de ${p2.party.name} (${p2.aff}%) y ${p3.party.name} (${p3.aff}%).`;
+  const p1 = r.national[0], p2 = r.national[1], p3 = r.national[2];
+  let pt = `De los partidos que se presentan en toda España, el más cercano a lo que piensas es ${p1.party.name} (${p1.aff}%), seguido de ${p2.party.name} (${p2.aff}%) y ${p3.party.name} (${p3.aff}%).`;
   const de = r.sc.e - p1.party.e, ds = r.sc.s - p1.party.s;
   if (Math.max(Math.abs(de), Math.abs(ds)) >= 30) {
     pt += Math.abs(de) >= Math.abs(ds)
@@ -708,14 +710,22 @@ function renderResult() {
       : ` Aun así, en lo social tu postura es bastante más ${ds < 0 ? "progresista" : "conservadora"} que la de ${p1.party.name}.`;
   }
   if (p1.aff - p2.aff <= 3) pt += ` La diferencia entre los dos primeros es mínima: podrías dudar entre ambos.`;
-  if (["erc", "junts", "pnv", "bildu", "bng"].includes(p1.party.id)) pt += ` Ten en cuenta que ${p1.party.name} solo se presenta en su comunidad; entre los partidos de ámbito estatal, el más cercano es ${r.aff.find(a => !["erc", "junts", "pnv", "bildu", "bng"].includes(a.party.id)).party.name}.`;
+  const closerRegional = r.aff.filter(a => a.party.region && a.aff > p1.aff);
+  if (closerRegional.length) {
+    const byRegion = {};
+    closerRegional.forEach(a => { if (!byRegion[a.party.region]) byRegion[a.party.region] = a; });
+    const bits = Object.values(byRegion).map(a => `${a.party.name} (${a.aff}%), que solo se presenta en ${a.party.region}`);
+    pt += ` Por ideas te queda aún más cerca ${listJoin(bits)}: si votas allí, también podría ser tu opción.`;
+  }
   paras.push(pt);
   $("r-analysis").replaceChildren(...paras.map(t => el("p", null, t)));
 
   // Partidos
   $("r-parties").replaceChildren(...r.aff.map(a => el("div", { class: "pbar" },
-    el("span", { class: "name", title: a.party.name }, a.party.name),
-    el("span", { class: "track" }, el("i", { style: `width:${a.aff}%;background:${a.party.color}` })),
+    el("span", { class: "stack", style: "gap:0;min-width:0" },
+      el("span", { class: "name", title: a.party.name }, a.party.name),
+      a.party.region ? el("span", { class: "muted", style: "font-size:.72rem;line-height:1.2" }, "solo en " + a.party.region) : null),
+    el("span", { class: "track" }, el("i", { style: `width:${a.aff}%;background:${a.party.color};${a.party.region ? "opacity:.55" : ""}` })),
     el("span", { class: "pct num" }, a.aff + "%")
   )));
 
@@ -758,7 +768,8 @@ function renderGroupText() {
   const avgIdeo = ideologyOf({ e: avg.e, s: avg.s, t: 0 });
   const dAvg = Math.hypot(me.sc.e - avg.e, me.sc.s - avg.s);
   paras.push(`De media, el grupo sale «${avgIdeo.label}». ` + (dAvg < 25 ? `${who === "tú" ? "Estás" : entry.name + " está"} muy cerca de esa media: ${who === "tú" ? "eres" : "es"} el termómetro del grupo.` : dAvg < 60 ? `${who === "tú" ? "Te separas" : entry.name + " se separa"} de la media lo justo para tener tus propias discusiones.` : `${who === "tú" ? "Estás" : entry.name + " está"} lejos de la media: en las cenas de política ${who === "tú" ? "te toca" : "le toca"} llevar la contraria.`));
-  const sameParty = others.filter(o => affinities(o.sc)[0].party.id === affinities(me.sc)[0].party.id).map(o => o.x.name);
+  const topNational = sc => affinities(sc).find(a => !a.party.region).party.id;
+  const sameParty = others.filter(o => topNational(o.sc) === topNational(me.sc)).map(o => o.x.name);
   if (sameParty.length) paras.push(`Comparte partido más afín con ${listJoin(sameParty)}.`.replace("Comparte", who === "tú" ? "Compartes" : "Comparte"));
   box.replaceChildren(...paras.map(t => el("p", null, t)));
 }
@@ -778,7 +789,7 @@ function renderGroup() {
 
   // Distribución de voto
   const counts = {};
-  list.forEach(x => { const id = affinities(computeScores(x.answers))[0].party.id; counts[id] = (counts[id] || 0) + 1; });
+  list.forEach(x => { const id = analyze(x.answers).top.id; counts[id] = (counts[id] || 0) + 1; });
   const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   const max = rows.length ? rows[0][1] : 1;
   $("group-dist").replaceChildren(...(rows.length ? rows.map(([id, c]) => el("div", { class: "pbar" },
