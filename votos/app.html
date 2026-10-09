@@ -346,7 +346,7 @@ label { font-weight: 600; font-size: .9rem; }
     <div class="stack" style="gap:4px">
       <span class="eyebrow">Consejo de Ministros</span>
       <h2>El Gobierno del grupo</h2>
-      <p class="muted small">Preside quien encabeza el ranking presidencial. Cada ministerio es para la persona que mejor encaja en ese puesto, aunque acumule varios: cuenta un 70% lo cerca que está del perfil ideal en esos temas y un 30% lo implicada que está (lo firmes que son sus opiniones).</p>
+      <p class="muted small">Preside quien encabeza el ranking presidencial. Cada ministerio es para la persona que mejor encaja en ese puesto, aunque acumule varios: cuenta a partes iguales lo cerca que está del perfil ideal en esos temas y lo implicada que está (lo firmes que son sus opiniones).</p>
     </div>
     <div id="cab-me"></div>
     <div class="stack" style="gap:6px" id="cab-list"></div>
@@ -1089,12 +1089,12 @@ function ministryInvolvement(answers, m) {
   const xs = m.q.map(i => clampAns(answers[i]));
   return Math.round(xs.reduce((s, a) => s + (a == null ? 0 : Math.abs(a - 5.5) / 4.5), 0) / xs.length * 100);
 }
-// Puntuación para el cargo: 70% acierto con el perfil ideal + 30% implicación en el tema.
+// Puntuación para el cargo: 50% acierto con el perfil ideal + 50% implicación en el tema.
 function ministryScore(answers, m) {
   const fit = ministryFitRaw(answers, m);
   if (fit == null) return null;
   const inv = ministryInvolvement(answers, m);
-  return { fit: Math.round(fit), inv, score: 0.7 * fit + 0.3 * inv };
+  return { fit: Math.round(fit), inv, score: 0.5 * fit + 0.5 * inv };
 }
 // La afirmación del ministerio en la que más destaca: muy cerca del ideal (2 puntos como mucho) y con opinión firme.
 function ministryHighlight(answers, m) {
