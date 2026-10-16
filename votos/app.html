@@ -465,8 +465,8 @@ function affinities(sc) {
 }
 function bucket(v) { return v <= -25 ? -1 : v >= 25 ? 1 : 0; }
 function ideologyOf(sc) {
-  if (sc.e <= -60 && sc.s <= -50) return { label: "Izquierda radical", text: "Tus posiciones están en el extremo izquierdo en los dos ejes: quieres un cambio profundo del modelo económico, con mucho más peso de lo público, y una sociedad radicalmente abierta en derechos y libertades. No te convencen las medias tintas." };
-  if (sc.e >= 45 && sc.s >= 65) return { label: "Derecha nacional-conservadora", text: "Te sitúas en la derecha más marcada: economía de mercado, pero sobre todo una defensa firme de la identidad nacional, la tradición, el orden y un control estricto de la inmigración. Las batallas culturales son centrales en tu forma de ver la política." };
+  if (sc.e <= -40 && sc.s <= -60) return { label: "Izquierda radical", text: "Tus posiciones están en el extremo izquierdo en los dos ejes: quieres un cambio profundo del modelo económico, con mucho más peso de lo público, y una sociedad radicalmente abierta en derechos y libertades. No te convencen las medias tintas." };
+  if (sc.e >= 40 && sc.s >= 60) return { label: "Derecha nacional-conservadora", text: "Te sitúas en la derecha más marcada: economía de mercado, pero sobre todo una defensa firme de la identidad nacional, la tradición, el orden y un control estricto de la inmigración. Las batallas culturales son centrales en tu forma de ver la política." };
   if (sc.e >= 60 && sc.s <= -25) return { label: "Libertarismo", text: "Quieres el mínimo Estado posible en todo: ni impuestos altos ni que el gobierno se meta en tu vida privada. Desconfías del poder público venga de la izquierda o de la derecha." };
   return IDEOLOGIES[bucket(sc.e) + "," + bucket(sc.s)];
 }
@@ -1109,8 +1109,10 @@ function ministryHighlight(answers, m) {
   return best;
 }
 function buildCabinet(list) {
-  const president = presRanking(list)[0].x;
-  const pool = list.length > 1 ? list.filter(x => x.docId !== president.docId) : list;
+  const ranking = presRanking(list);
+  if (!ranking.length) return null;
+  const president = ranking[0].x, eligible = ranking.map(r => r.x);
+  const pool = eligible.length > 1 ? eligible.filter(x => x.docId !== president.docId) : eligible;
   const owner = {};
   MINISTRIES.forEach((m, mi) => {
     const ranked = pool.map(x => ({ x, ...ministryScore(x.answers, m) })).filter(r => r.score != null)
@@ -1122,13 +1124,16 @@ function buildCabinet(list) {
 function renderCabinet(list) {
   const viewing = state.viewing;
   if (!viewing || !list.length) return;
-  const { president, owner } = buildCabinet(list);
+  const cab = buildCabinet(list);
+  if (!cab) { $("cab-me").replaceChildren(el("div", { class: "notice" }, "El Gobierno se forma con quien tiene nota presidencial: hay que responder al menos 20 de las 30 afirmaciones.")); return; }
+  const { president, owner } = cab;
   const isMe = state.mine && viewing.docId === state.mine.docId;
   const who = x => x.name + (state.mine && x.docId === state.mine.docId ? " (tú)" : "");
   const held = MINISTRIES.filter((m, mi) => owner[mi] && owner[mi].x.docId === viewing.docId);
   const worst = MINISTRIES.map(m => ({ m, r: ministryScore(viewing.answers, m) })).filter(o => o.r).sort((a, b) => a.r.score - b.r.score)[0];
-  const role = viewing.docId === president.docId ? "presid" : held.length ? "carteras" : "sin";
+  const role = !hasPresScore(viewing.answers) ? "nota" : viewing.docId === president.docId ? "presid" : held.length ? "carteras" : "sin";
   const line = role === "presid" ? (isMe ? "Tú presides el Gobierno." : `${viewing.name} preside el Gobierno.`)
+    : role === "nota" ? (isMe ? "Sin cartera: para entrar en el Gobierno hay que responder al menos 20 de las 30 afirmaciones." : `${viewing.name} no entra en el Gobierno: respondió menos de 20 afirmaciones.`)
     : role === "carteras" ? (isMe ? "Tú te encargas de " : `${viewing.name} se encarga de `) + listJoin(held.map(m => m.icon + " " + m.name)) + "."
     : (isMe ? "Te quedas sin cartera: en cada ministerio hay alguien que encaja mejor." : `${viewing.name} se queda sin cartera: en cada ministerio hay alguien que encaja mejor.`);
   $("cab-me").replaceChildren(el("div", { class: "notice", style: "gap:6px" },
@@ -1352,8 +1357,11 @@ function presScore(answers) {
   IDEAL.forEach((it, i) => { const a = clampAns(answers[i]); if (a == null) return; sum += it.w * Math.abs(a - it.v); wsum += it.w; });
   return wsum ? 100 - (sum / wsum) / 5 * 100 : 0; // 5 puntos de desviación media ≈ 0/100
 }
+// Para tener nota presidencial (y entrar en el Gobierno) hay que responder al menos 20 de las 30 afirmaciones.
+const PRES_MIN = 20;
+const hasPresScore = answers => answers.filter(a => clampAns(a) != null).length >= PRES_MIN;
 function presRanking(list) {
-  return list.map(x => { const raw = Math.max(0, Math.min(100, presScore(x.answers))); return { x, raw, score: Math.round(raw) }; }).sort((a, b) => b.raw - a.raw);
+  return list.filter(x => hasPresScore(x.answers)).map(x => { const raw = Math.max(0, Math.min(100, presScore(x.answers))); return { x, raw, score: Math.round(raw) }; }).sort((a, b) => b.raw - a.raw);
 }
 
 function renderPresident() {
@@ -1377,10 +1385,12 @@ function renderPresident() {
   const pos = ranking.findIndex(r => r.x.docId === viewing.docId);
   const mine = ranking[pos];
   const who = isMe ? "Tu" : "La";
-  const tag = n < 2 ? "" : pos === 0 ? " 🥇 Mejor presidente del grupo" : pos === n - 1 && n >= 3 ? " 👎 Peor presidente del grupo" : "";
-  $("pres-me").replaceChildren(el("div", { class: "row", style: "align-items:baseline;gap:12px" },
+  const tag = n < 2 || !mine ? "" : pos === 0 ? " 🥇 Mejor presidente del grupo" : pos === n - 1 && n >= 3 ? " 👎 Peor presidente del grupo" : "";
+  if (mine) $("pres-me").replaceChildren(el("div", { class: "row", style: "align-items:baseline;gap:12px" },
     el("span", { class: "num", style: "font-size:2.2rem;font-family:var(--font-display);font-weight:800" }, mine.score + "/100"),
     el("span", null, `${who} aptitud presidencial${isMe ? "" : " de " + viewing.name}. Puesto ${pos + 1} de ${n}.${tag}`)));
+  else $("pres-me").replaceChildren(el("div", { class: "notice" }, el("b", null, "Sin nota presidencial. "),
+    `Hay que responder al menos 20 de las 30 afirmaciones y ${isMe ? "has respondido" : viewing.name + " ha respondido"} ${viewing.answers.filter(a => clampAns(a) != null).length}.`));
 
   const medal = i => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : String(i + 1);
   const worstFrom = n >= 4 ? n - 2 : n >= 3 ? n - 1 : n;
