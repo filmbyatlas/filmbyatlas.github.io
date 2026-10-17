@@ -419,7 +419,7 @@ const AXIS_NAME = { E: "Economía", S: "Sociedad", T: "Territorio" };
 // Posición aproximada: e (−100 socialista … +100 capitalista), s (−100 progresista … +100 conservador), t (−100 plurinacional … +100 centralista)
 const PARTIES = [
   { id: "podemos", name: "Podemos", short: "POD", color: "#6b2e85", e: -80, s: -80, t: -45, desc: "Izquierda transformadora: lo público por delante, feminismo y republicanismo." },
-  { id: "sumar", name: "Sumar", short: "SUM", color: "#e0157e", e: -65, s: -70, t: -35, desc: "Izquierda verde y feminista: más derechos laborales y transición ecológica." },
+  { id: "sumar", name: "Frente Amplio", short: "FA", color: "#e0157e", e: -65, s: -70, t: -35, desc: "Izquierda verde y feminista (antes Sumar, con IU, Más Madrid y otros): más derechos laborales y transición ecológica." },
   { id: "psoe", name: "PSOE", short: "PSOE", color: "#e30613", e: -25, s: -45, t: -10, desc: "Socialdemocracia: Estado del bienestar, reformas graduales y derechos civiles." },
   { id: "pp", name: "PP", short: "PP", color: "#1d84ce", e: 40, s: 30, t: 45, desc: "Centroderecha: menos impuestos, gestión económica y unidad de España." },
   { id: "vox", name: "Vox", short: "VOX", color: "#5fb82a", e: 40, s: 85, t: 90, desc: "Derecha nacional-conservadora: inmigración, identidad nacional y recentralización." },
@@ -428,7 +428,24 @@ const PARTIES = [
   { id: "junts", name: "Junts", short: "JxC", color: "#1fb5a9", e: 25, s: -5, t: -90, region: "Cataluña", desc: "Independentismo catalán de centroderecha (solo se presenta en Cataluña)." },
   { id: "pnv", name: "PNV", short: "PNV", color: "#2e8540", e: 15, s: -10, t: -70, region: "Euskadi y Navarra", desc: "Nacionalismo vasco moderado y democristiano (solo se presenta en Euskadi y Navarra)." },
   { id: "bildu", name: "EH Bildu", short: "BILDU", color: "#9ab800", e: -65, s: -60, t: -95, region: "Euskadi y Navarra", desc: "Izquierda independentista vasca (solo se presenta en Euskadi y Navarra)." },
-  { id: "bng", name: "BNG", short: "BNG", color: "#5aa5d9", e: -60, s: -55, t: -85, region: "Galicia", desc: "Izquierda nacionalista gallega (solo se presenta en Galicia)." }
+  { id: "bng", name: "BNG", short: "BNG", color: "#5aa5d9", e: -60, s: -55, t: -85, region: "Galicia", desc: "Izquierda nacionalista gallega (solo se presenta en Galicia)." },
+  // Añadidos en octubre de 2026 (elecciones del 29N), igual que en la web pública. minor: sin escaño; out: no se presenta.
+  { id: "compromis", name: "Compromís", short: "COMP", color: "#e5732a", e: -55, s: -60, t: -45, region: "la Comunidad Valenciana", desc: "Izquierda valencianista y ecologista (solo se presenta en la Comunidad Valenciana)." },
+  { id: "cc", name: "Coalición Canaria", short: "CC", color: "#f2c200", e: 15, s: 0, t: -40, region: "Canarias", desc: "Nacionalismo canario de centro (solo se presenta en Canarias)." },
+  { id: "adelante", name: "Adelante Andalucía", short: "ADEL", color: "#24c87e", e: -70, s: -65, t: -60, region: "Andalucía", desc: "Izquierda andalucista y soberanista: servicios públicos, anticapitalismo y más poder para Andalucía (solo se presenta en Andalucía)." },
+  { id: "upn", name: "UPN", short: "UPN", color: "#00599b", e: 35, s: 35, t: 15, region: "Navarra", desc: "Regionalismo navarro de centroderecha: fueros, Navarra sin Euskadi y unidad de España (solo se presenta en Navarra; el 29N, en coalición con el PP)." },
+  { id: "nc", name: "Nueva Canarias", short: "NC", color: "#639e42", e: -40, s: -45, t: -50, region: "Canarias", desc: "Nacionalismo canario de izquierda moderada: socialdemocracia y más autogobierno (solo se presenta en Canarias)." },
+  { id: "drago", name: "Drago Canarias", short: "DRAGO", color: "#3f6b4f", e: -70, s: -70, t: -60, region: "Canarias", desc: "Izquierda canaria ecologista y feminista (solo se presenta en Canarias)." },
+  { id: "existe", name: "Existe", short: "EXISTE", color: "#037252", e: -5, s: -10, t: -15, region: "Aragón", desc: "Plataforma de la España vaciada (Teruel Existe, Aragón Existe) (solo se presenta en Aragón)." },
+  { id: "soriaya", name: "Soria ¡Ya!", short: "SY", color: "#5b5a52", e: 0, s: -5, t: -10, region: "Soria", desc: "Plataforma provincial transversal contra la despoblación (solo se presenta en Soria)." },
+  { id: "d21", name: "Democracia 21", short: "D21", color: "#e8c600", e: 25, s: -15, t: 40, region: "Madrid y Barcelona", minor: true, desc: "Centro liberal y regeneracionista (solo se presenta en Madrid y Barcelona)." },
+  { id: "pacma", name: "PACMA", short: "PACMA", color: "#22d65d", e: -40, s: -60, t: 0, minor: true, desc: "Animalismo y ecologismo: derechos de los animales, fin de la tauromaquia y protección del medio ambiente." },
+  { id: "fo", name: "Frente Obrero", short: "FO", color: "#7a1414", e: -85, s: 30, t: 60, minor: true, desc: "Izquierda obrerista y patriótica: nacionalizaciones, fuera de la UE y la OTAN y control de la inmigración." },
+  { id: "ie", name: "Izquierda Española", short: "IE", color: "#db291f", e: -50, s: -35, t: 85, minor: true, desc: "Izquierda jacobina: Estado del bienestar, laicismo y un Estado unitario sin autonomías." },
+  { id: "ac", name: "Aliança Catalana", short: "AC", color: "#064a81", e: 30, s: 75, t: -95, region: "Cataluña", out: true, desc: "Independentismo catalán de extrema derecha (no se presenta a las generales del 29N)." },
+  { id: "cup", name: "CUP", short: "CUP", color: "#d9b400", e: -90, s: -80, t: -100, region: "Cataluña", out: true, desc: "Izquierda anticapitalista e independentista catalana (no se presenta a las generales del 29N)." },
+  { id: "prc", name: "PRC", short: "PRC", color: "#a8b40a", e: -5, s: -10, t: -20, region: "Cantabria", out: true, desc: "Regionalismo cántabro de centro y pragmático (no se presenta a las generales del 29N)." },
+  { id: "upl", name: "UPL", short: "UPL", color: "#b41062", e: -5, s: -15, t: -30, region: "León", out: true, desc: "Leonesismo: autonomía propia para León, Zamora y Salamanca (no se presenta a las generales del 29N)." }
 ];
 const PARTY_BY_ID = Object.fromEntries(PARTIES.map(p => [p.id, p]));
 
@@ -475,10 +492,13 @@ function intensity(answers) {
   if (!xs.length) return 0;
   return xs.reduce((s, a) => s + Math.abs(a - 5.5) / 4.5, 0) / xs.length;
 }
+// «Votarías a»: partido estatal con escaño que se presenta el 29N.
+const isNational = p => !p.region && !p.minor && !p.out;
+const partyTag = p => p.out ? "no se presenta el 29N" : p.minor ? (p.region ? `sin escaño · solo en ${p.region}` : "sin escaño") : p.region ? "solo en " + p.region : "";
 function analyze(answers) {
   const sc = computeScores(answers);
   const aff = affinities(sc);
-  const national = aff.filter(a => !a.party.region);
+  const national = aff.filter(a => isNational(a.party));
   // "Votarías a" siempre es un partido que se presenta en toda España; los nacionalistas solo se mencionan aparte.
   return { sc, aff, national, ideo: ideologyOf(sc), top: national[0].party, topAff: national[0].aff, intensity: intensity(answers) };
 }
@@ -739,12 +759,10 @@ function renderResult() {
       : ` Aun así, en lo social tu postura es bastante más ${ds < 0 ? "progresista" : "conservadora"} que la de ${p1.party.name}.`;
   }
   if (p1.aff - p2.aff <= 3) pt += ` La diferencia entre los dos primeros es mínima: podrías dudar entre ambos.`;
-  const closerRegional = r.aff.filter(a => a.party.region && a.aff > p1.aff);
-  if (closerRegional.length) {
-    const byRegion = {};
-    closerRegional.forEach(a => { if (!byRegion[a.party.region]) byRegion[a.party.region] = a; });
-    const bits = Object.values(byRegion).map(a => `${a.party.name} (${a.aff}%), que solo se presenta en ${a.party.region}`);
-    pt += ` Por ideas te queda aún más cerca ${listJoin(bits)}: si votas allí, también podría ser tu opción.`;
+  const closer = r.aff.filter(a => !isNational(a.party) && a.aff > p1.aff).slice(0, 2);
+  if (closer.length) {
+    const why = q => q.out ? "que no se presenta el 29N" : q.minor ? "que no tiene escaño en el Congreso" : `que solo se presenta en ${q.region}`;
+    pt += ` Por ideas te ${closer.length > 1 ? "quedan" : "queda"} aún más cerca ${listJoin(closer.map(a => `${a.party.name} (${a.aff}%), ${why(a.party)}`))}.`;
   }
   paras.push(pt);
   $("r-analysis").replaceChildren(...paras.map(t => el("p", null, t)));
@@ -753,8 +771,8 @@ function renderResult() {
   $("r-parties").replaceChildren(...r.aff.map(a => el("div", { class: "pbar" },
     el("span", { class: "stack", style: "gap:0;min-width:0" },
       el("span", { class: "name", title: a.party.name }, a.party.name),
-      a.party.region ? el("span", { class: "muted", style: "font-size:.72rem;line-height:1.2" }, "solo en " + a.party.region) : null),
-    el("span", { class: "track" }, el("i", { style: `width:${a.aff}%;background:${a.party.color};${a.party.region ? "opacity:.55" : ""}` })),
+      partyTag(a.party) ? el("span", { class: "muted", style: "font-size:.72rem;line-height:1.2" }, partyTag(a.party)) : null),
+    el("span", { class: "track" }, el("i", { style: `width:${a.aff}%;background:${a.party.color};${isNational(a.party) ? "" : "opacity:.55"}` })),
     el("span", { class: "pct num" }, a.aff + "%")
   )));
 
@@ -797,7 +815,7 @@ function renderGroupText() {
   const avgIdeo = ideologyOf({ e: avg.e, s: avg.s, t: 0 });
   const dAvg = Math.hypot(me.sc.e - avg.e, me.sc.s - avg.s);
   paras.push(`De media, el grupo sale «${avgIdeo.label}». ` + (dAvg < 25 ? `${who === "tú" ? "Estás" : entry.name + " está"} muy cerca de esa media: ${who === "tú" ? "eres" : "es"} el termómetro del grupo.` : dAvg < 60 ? `${who === "tú" ? "Te separas" : entry.name + " se separa"} de la media lo justo para tener tus propias discusiones.` : `${who === "tú" ? "Estás" : entry.name + " está"} lejos de la media: en las cenas de política ${who === "tú" ? "te toca" : "le toca"} llevar la contraria.`));
-  const topNational = sc => affinities(sc).find(a => !a.party.region).party.id;
+  const topNational = sc => affinities(sc).find(a => isNational(a.party)).party.id;
   const sameParty = others.filter(o => topNational(o.sc) === topNational(me.sc)).map(o => o.x.name);
   if (sameParty.length) paras.push(`Comparte partido más afín con ${listJoin(sameParty)}.`.replace("Comparte", who === "tú" ? "Compartes" : "Comparte"));
   box.replaceChildren(...paras.map(t => el("p", null, t)));
@@ -990,7 +1008,8 @@ function drawChart(container, entries, highlightId, showParties, showNames, show
   }
 
   if (showParties) {
-    PARTIES.forEach(p => {
+    // el mapa sigue con los partidos de siempre (los añadidos en 2026 solo salen en la lista, para no saturarlo)
+    PARTIES.filter(p => !p.minor && !p.out && !["compromis", "cc", "adelante", "upn", "nc", "drago", "existe", "soriaya"].includes(p.id)).forEach(p => {
       const g = sv("g", { opacity: 0.85 });
       g.append(sv("title", {}, p.name));
       g.append(sv("rect", { x: X(p.e) - 5, y: Y(p.s) - 5, width: 10, height: 10, rx: 2, fill: p.color, stroke: "var(--surface)", "stroke-width": 1.5 }));
