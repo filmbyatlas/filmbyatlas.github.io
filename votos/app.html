@@ -482,8 +482,8 @@ function affinities(sc) {
 }
 function bucket(v) { return v <= -25 ? -1 : v >= 25 ? 1 : 0; }
 function ideologyOf(sc) {
-  if (sc.e <= -40 && sc.s <= -60) return { label: "Izquierda radical", text: "Tus posiciones están en el extremo izquierdo en los dos ejes: quieres un cambio profundo del modelo económico, con mucho más peso de lo público, y una sociedad radicalmente abierta en derechos y libertades. No te convencen las medias tintas." };
-  if (sc.e >= 40 && sc.s >= 60) return { label: "Derecha nacional-conservadora", text: "Te sitúas en la derecha más marcada: economía de mercado, pero sobre todo una defensa firme de la identidad nacional, la tradición, el orden y un control estricto de la inmigración. Las batallas culturales son centrales en tu forma de ver la política." };
+  if (sc.e <= -40 && sc.s <= -60) return { label: "Izquierda Plus", text: "Tus posiciones están en el extremo izquierdo en los dos ejes: quieres un cambio profundo del modelo económico, con mucho más peso de lo público, y una sociedad muy progresista en derechos sociales y costumbres. No te convencen las medias tintas." };
+  if (sc.e >= 40 && sc.s >= 60) return { label: "Derecha Plus", text: "Te sitúas en la derecha más marcada: economía de mercado, pero sobre todo una defensa firme de la identidad nacional, la tradición, el orden y un control estricto de la inmigración. La identidad y los valores pesan tanto como la economía en tu forma de ver la política." };
   if (sc.e >= 60 && sc.s <= -25) return { label: "Libertarismo", text: "Quieres el mínimo Estado posible en todo: ni impuestos altos ni que el gobierno se meta en tu vida privada. Desconfías del poder público venga de la izquierda o de la derecha." };
   return IDEOLOGIES[bucket(sc.e) + "," + bucket(sc.s)];
 }
